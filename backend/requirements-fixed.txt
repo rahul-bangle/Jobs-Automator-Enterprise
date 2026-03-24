@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+pydantic-settings
+sqlalchemy[asyncio]
+aiosqlite
+crawl4ai
+groq
+beautifulsoup4
+openpyxl
+httpx
+python-dotenv
+python-multipart

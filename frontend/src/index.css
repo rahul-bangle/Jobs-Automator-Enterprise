@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --surface-base: #f5f7fb;
+  --surface-elevated: rgba(255, 255, 255, 0.88);
+  --surface-soft: rgba(255, 255, 255, 0.72);
+  --stroke-soft: rgba(15, 23, 42, 0.08);
+  --glow-cyan: rgba(59, 130, 246, 0.09);
+  --glow-gold: rgba(245, 158, 11, 0.08);
+  --glow-emerald: rgba(16, 185, 129, 0.08);
+  background:
+    radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.1), transparent 24%),
+    radial-gradient(circle at 86% 14%, rgba(245, 158, 11, 0.08), transparent 18%),
+    radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.08), transparent 24%),
+    linear-gradient(180deg, #ffffff 0%, #f6f8fc 52%, #eef3f9 100%);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, #ffffff 0%, #f6f8fc 52%, #eef3f9 100%);
+  background-size: 32px 32px, 32px 32px, auto;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.18);
+  color: #0f172a;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(226, 232, 240, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.24), rgba(148, 163, 184, 0.3));
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+}
+
+[class*="bg-slate-950"] {
+  background-color: rgba(255, 255, 255, 0.76) !important;
+}
+
+[class*="bg-slate-900"] {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[class*="border-slate-800"] {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+[class*="border-slate-700"] {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+[class*="text-white"] {
+  color: #0f172a !important;
+}
+
+[class*="text-slate-100"],
+[class*="text-slate-200"],
+[class*="text-slate-300"] {
+  color: #1e293b !important;
+}
+
+[class*="text-slate-400"] {
+  color: #475569 !important;
+}
+
+[class*="text-slate-500"] {
+  color: #64748b !important;
+}
+
+[class*="shadow-2xl"],
+[class*="shadow-[0_24px_80px"] {
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.08) !important;
+}
