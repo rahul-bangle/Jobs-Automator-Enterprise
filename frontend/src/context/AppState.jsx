@@ -94,6 +94,23 @@ export function AppStateProvider({ children }) {
         const saved = await mockApi.saveSettings(settings);
         setState((previous) => ({ ...previous, settings: saved }));
       },
+      async optimizeResume(jobId) {
+        setIsProcessing(true);
+        try {
+          const result = await api.optimizeResume(jobId);
+          // Update the specific job's resume variant in state if needed
+          setState(prev => ({
+            ...prev,
+            resumeVariants: [...prev.resumeVariants, result]
+          }));
+          return result;
+        } finally {
+          setIsProcessing(false);
+        }
+      },
+      async fetchStudyGuide(jobId) {
+        return await api.fetchStudyGuide(jobId);
+      },
     }),
     [preview, isProcessing, loadingProgress],
   );

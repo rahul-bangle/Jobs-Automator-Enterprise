@@ -271,4 +271,24 @@ export const mockApi = {
     saveState(state);
     return delay(clone(state.settings));
   },
+  async optimizeResume(jobId) {
+    return delay({
+      status: "PASS",
+      score: 82,
+      variant_id: "mock-v1",
+      filename: "ats_optimized_v1.md",
+      keywords: ["React", "Product Strategy", "User Research"]
+    });
+  },
+  async fetchStudyGuide(jobId) {
+    return delay({
+      skill_gaps: ["Advanced Analytics", "A/B Testing Frameworks"],
+      business_context: "Enterprise SaaS focus on logistics automation.",
+      research_prompts: [
+        "How they integrate with SAP systems",
+        "Their 'Fleet Master' product architecture",
+        "Recent Series B funding objectives"
+      ]
+    });
+  }
 };

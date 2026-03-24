@@ -8,8 +8,18 @@ import StatusBadge from '../components/StatusBadge.jsx';
 import { useAppState } from '../context/useAppState.jsx';
 
 function ReviewPage() {
-  const { derived, actions } = useAppState();
+  const { derived, actions, isProcessing } = useAppState();
   const [selectedJob, setSelectedJob] = useState(null);
+  const [activeTab, setActiveTab] = useState('summary'); // 'summary' or 'study'
+  const [studyGuide, setStudyGuide] = useState(null);
+
+  const handleFetchStudy = async (id) => {
+    setActiveTab('study');
+    if (!studyGuide) {
+      const result = await actions.fetchStudyGuide(id);
+      setStudyGuide(result);
+    }
+  };
 
   const columns = [
     { key: 'companyName', label: 'Company' },
@@ -32,26 +42,93 @@ function ReviewPage() {
             <div className="flex flex-wrap gap-3">
               <ScorePill value={selectedJob.trustScore} label="Trust" />
               <ScorePill value={selectedJob.relevanceScore} label="Relevance" />
+              <div className="flex items-center gap-2 rounded-lg border border-cyan-500/20 bg-cyan-50 px-2 py-1 text-xs font-bold text-cyan-700">
+                ATS: {selectedJob.atsScore || '--'}%
+              </div>
               <StatusBadge value={selectedJob.queueStatus} />
             </div>
-            <div>
-              <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Fit summary</div>
-              <p className="mt-2 text-sm text-slate-300">{selectedJob.fitSummary}</p>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Risk flags</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedJob.riskFlags.map((flag) => (
-                  <span key={flag} className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs text-amber-200">
-                    {flag}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => actions.approveReviewItem(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl bg-emerald-400 px-4 py-3 font-medium text-slate-950 hover:bg-emerald-300">
-                Approve into application queue
+
+            {/* Tabs */}
+            <div className="flex border-b border-slate-100">
+              <button 
+                onClick={() => setActiveTab('summary')}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider ${activeTab === 'summary' ? 'border-b-2 border-slate-900 text-slate-900' : 'text-slate-400'}`}
+              >
+                Summary
               </button>
+              <button 
+                onClick={() => handleFetchStudy(selectedJob.id)}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider ${activeTab === 'study' ? 'border-b-2 border-slate-900 text-slate-900' : 'text-slate-400'}`}
+              >
+                Study Guide
+              </button>
+            </div>
+
+            {activeTab === 'summary' ? (
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Fit summary</div>
+                  <p className="mt-2 text-sm text-slate-600">{selectedJob.fitSummary}</p>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Risk flags</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedJob.riskFlags.map((flag) => (
+                      <span key={flag} className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs text-amber-700">
+                        {flag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {studyGuide ? (
+                  <>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <div className="text-xs font-bold uppercase text-slate-400">Company Context</div>
+                      <p className="mt-1 text-sm text-slate-600 italic">"{studyGuide.business_context}"</p>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold uppercase text-slate-400">Skill Gaps (What to Learn)</div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {studyGuide.skill_gaps.map(gap => (
+                          <span key={gap} className="rounded-lg bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700">-{gap}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold uppercase text-slate-400">Research Prompts</div>
+                      <ul className="mt-2 space-y-2">
+                        {studyGuide.research_prompts.map((p, i) => (
+                          <li key={i} className="flex gap-3 rounded-xl border border-slate-100 p-3 text-sm text-slate-600 hover:border-cyan-200 hover:bg-cyan-50/30">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold">{i+1}</span>
+                            {p}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-10 text-center text-slate-400">Analyzing job requirements...</div>
+                )}
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-6">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button" 
+                  disabled={isProcessing}
+                  onClick={() => actions.optimizeResume(selectedJob.id)}
+                  className="rounded-2xl border border-cyan-500 bg-cyan-50 px-4 py-3 font-bold text-cyan-700 hover:bg-cyan-100 disabled:opacity-50"
+                >
+                  {isProcessing ? 'Tailoring CV...' : '🚀 Optimize for ATS'}
+                </button>
+                <button type="button" onClick={() => actions.approveReviewItem(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl bg-slate-900 px-4 py-3 font-bold text-white hover:bg-slate-800">
+                  Approve Job
+                </button>
+              </div>
               <button type="button" onClick={() => actions.rejectReviewItem(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl bg-rose-400 px-4 py-3 font-medium text-slate-950 hover:bg-rose-300">
                 Reject
               </button>

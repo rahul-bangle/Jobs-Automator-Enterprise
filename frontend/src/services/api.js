@@ -33,5 +33,19 @@ export const api = {
        body: JSON.stringify(preview.rows.filter(r => r.queueStatus === 'accepted')),
     });
     return await response.json();
+  },
+
+  async optimizeResume(jobId) {
+    const response = await fetch(`${API_BASE_URL}/intelligence/optimize-resume/${jobId}`, {
+      method: 'POST',
+    });
+    if (!response.ok) throw new Error('Failed to optimize resume');
+    return await response.json();
+  },
+
+  async fetchStudyGuide(jobId) {
+    const response = await fetch(`${API_BASE_URL}/intelligence/study-guide/${jobId}`);
+    if (!response.ok) throw new Error('Failed to fetch study guide');
+    return await response.json();
   }
 };

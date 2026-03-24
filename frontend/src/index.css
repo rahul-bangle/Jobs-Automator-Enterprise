@@ -118,3 +118,24 @@ pre,
 [class*="shadow-[0_24px_80px"] {
   box-shadow: 0 24px 64px rgba(15, 23, 42, 0.08) !important;
 }
+
+/* Solid Modern Utilities */
+.solid-card-pro {
+  @apply bg-white border border-slate-200 rounded-2xl shadow-sm transition-all duration-300;
+}
+
+.solid-card-pro:hover {
+  @apply border-cyan-200 shadow-md;
+}
+
+.cyan-glow {
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.1);
+}
+
+.text-pro-tight {
+  letter-spacing: -0.025em;
+}
+
+.bg-solid-surface {
+  background-color: #ffffff;
+}
