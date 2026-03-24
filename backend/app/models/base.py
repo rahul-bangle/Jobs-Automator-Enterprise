@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-import hmac
 import hashlib
 
 class User(SQLModel, table=True):
@@ -46,6 +45,7 @@ class Job(SQLModel, table=True):
     job_title: str
     source_url: str
     location: str
+    description: Optional[str] = None
     ats_type: str = "unknown"
     trust_score: int = 0
     relevance_score: int = 0
@@ -53,6 +53,7 @@ class Job(SQLModel, table=True):
     fit_summary: Optional[str] = None
     score_breakdown: Optional[dict] = Field(default={}, sa_column=Column(JSON))
     risk_flags: List[str] = Field(default=[], sa_column=Column(JSON))
+    study_guide: Optional[dict] = Field(default={}, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     @staticmethod
@@ -64,7 +65,11 @@ class ResumeVariant(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     job_id: Optional[str] = Field(default=None, foreign_key="job.id")
     filename: str
-    match_score: int = 0
+    content: Optional[str] = None
+    ats_score: int = 0
+    version: int = 0  # 0: Original, 1-3: Optimized
+    status: str = "PASS"  # PASS, FAIL, OPTIMIZING
+    keywords: List[str] = Field(default=[], sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ApplicationPacket(SQLModel, table=True):
@@ -80,7 +85,6 @@ class SubmissionAttempt(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     packet_id: Optional[int] = Field(default=None, foreign_key="applicationpacket.id")
     job_id: Optional[str] = Field(default=None, foreign_key="job.id")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     outcome: str = "pending"  # success, failure, pending
     failure_reason: Optional[str] = None

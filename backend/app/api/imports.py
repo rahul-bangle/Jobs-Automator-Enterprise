@@ -159,14 +159,15 @@ async def preview_import_urls(
             # 1. Scraping (Auto-Fetch Lite)
             html = await processor_service.fetch_url(url)
             content = await processor_service.process_html(html)
-            
             # 2. AI Scoring (Groq)
-            # We use dummy data for title/company if not found, but real scraping should improve this
             score_result = await scoring_service.score_job(
-                job_description=content,
-                candidate_resume="Product Manager with experience in AI and Ops." # Placeholder for now
+                session=session,
+                job_title="Product Manager", # Ideally extract from content
+                company_name="Scraped Co",    # Ideally extract from content
+                location="Remote",
+                description=content,
+                candidate_profile="Product Manager with experience in AI and Ops."
             )
-            
             rows.append({
                 "id": f"preview-{Job.generate_id('Scraped', url, 'Remote')}",
                 "companyName": "Scraped Listing", # In future, extract from content

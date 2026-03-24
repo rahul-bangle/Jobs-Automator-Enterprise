@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.core.db import get_session
 from app.models.base import Job, Campaign
-from app.services.scoring import score_job
+from app.services.scoring import scoring_service
+from app.services.ats import ats_service
 from app.services.market_analysis import analyze_market
 
 router = APIRouter()
@@ -23,7 +24,7 @@ async def score_single_job(
     campaign = result.scalars().first()
     candidate_profile = f"Role: {campaign.target_role}, Tech: {campaign.tech_stack}, Experience: {campaign.experience_level}" if campaign else "Fresher Product Manager"
 
-    result = await score_job(
+    result = await scoring_service.score_job(
         session=session,
         job_title=job.job_title,
         company_name=job.company_name,
@@ -91,3 +92,46 @@ async def run_market_analysis(session: AsyncSession = Depends(get_session)):
 
     analysis = await analyze_market(jobs_data)
     return analysis
+
+@router.post("/optimize-resume/{job_id}")
+async def optimize_resume_for_job(
+    job_id: str,
+    session: AsyncSession = Depends(get_session)
+):
+    """Manually trigger the 3-iteration ATS optimization loop."""
+    job = await session.get(Job, job_id)
+    if not job: raise HTTPException(status_code=404, detail="Job not found")
+
+    # Get candidate profile (Simple for now, can be expanded to full resume text)
+    result = await session.execute(select(Campaign).where(Campaign.is_active == True))
+    campaign = result.scalars().first()
+    candidate_profile = f"Role: {campaign.target_role}, Tech: {campaign.tech_stack}" if campaign else "Fresher"
+
+    variant = await ats_service.optimize_resume(session, job_id, candidate_profile, job.description or "")
+    return {
+        "status": "PASS" if variant.ats_score >= 75 else "FAIL",
+        "score": variant.ats_score,
+        "variant_id": variant.id,
+        "filename": variant.filename,
+        "keywords": variant.keywords
+    }
+
+@router.get("/study-guide/{job_id}")
+async def get_study_guide(
+    job_id: str,
+    session: AsyncSession = Depends(get_session)
+):
+    """Fetch or generate the study guide for a specific job."""
+    job = await session.get(Job, job_id)
+    if not job: raise HTTPException(status_code=404, detail="Job not found")
+
+    if not job.study_guide:
+        # Generate on the fly if missing (e.g. for review-queue jobs)
+        result = await session.execute(select(Campaign).where(Campaign.is_active == True))
+        campaign = result.scalars().first()
+        candidate_profile = f"Tech: {campaign.tech_stack}" if campaign else "Fresher"
+        job.study_guide = await ats_service.generate_study_guide(candidate_profile, job.description or "")
+        session.add(job)
+        await session.commit()
+
+    return job.study_guide

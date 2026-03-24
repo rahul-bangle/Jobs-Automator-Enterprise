@@ -44,83 +44,86 @@ Return exactly this JSON structure:
 }}"""
 
 
-def get_groq_client() -> Groq:
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        raise ValueError("GROQ_API_KEY not set in environment")
-    return Groq(api_key=api_key)
+class ScoringService:
+    def _get_groq_client(self) -> Groq:
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError("GROQ_API_KEY not set in environment")
+        return Groq(api_key=api_key)
 
+    async def score_job(
+        self,
+        session: AsyncSession,
+        job_title: str,
+        company_name: str,
+        location: str,
+        description: str,
+        candidate_profile: str,
+        use_speed_model: bool = False
+    ) -> Dict[str, Any]:
+        """Call Groq to score a job with white-box breakdown, incorporating learned weights."""
+        
+        # 1. Get dynamically tuned weights from the Learning Loop
+        weights = await learning_loop_service.get_current_weights(session)
+        
+        model = SPEED_MODEL if use_speed_model else REASONING_MODEL
 
-async def score_job(
-    session: AsyncSession,
-    job_title: str,
-    company_name: str,
-    location: str,
-    description: str,
-    candidate_profile: str,
-    use_speed_model: bool = False
-) -> Dict[str, Any]:
-    """Call Groq to score a job with white-box breakdown, incorporating learned weights."""
-    
-    # 1. Get dynamically tuned weights from the Learning Loop
-    weights = await learning_loop_service.get_current_weights(session)
-    
-    model = SPEED_MODEL if use_speed_model else REASONING_MODEL
+        try:
+            client = self._get_groq_client()
+            prompt = SCORING_PROMPT.format(
+                candidate_profile=candidate_profile,
+                job_title=job_title,
+                company_name=company_name,
+                location=location,
+                description=description[:3000] if description else "N/A",  # Token guard
+                skill_w=int(weights.skill_match_weight * 100),
+                keyword_w=int(weights.keyword_match_weight * 100),
+                experience_w=int(weights.experience_match_weight * 100),
+                location_w=int(weights.location_match_weight * 100)
+            )
 
-    try:
-        client = get_groq_client()
-        prompt = SCORING_PROMPT.format(
-            candidate_profile=candidate_profile,
-            job_title=job_title,
-            company_name=company_name,
-            location=location,
-            description=description[:3000],  # Token guard
-            skill_w=int(weights.skill_match_weight * 100),
-            keyword_w=int(weights.keyword_match_weight * 100),
-            experience_w=int(weights.experience_match_weight * 100),
-            location_w=int(weights.location_match_weight * 100)
-        )
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a precise job scoring engine. Always return valid JSON only."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                model=model,
+                temperature=0.1,  # Low temp for consistent scoring
+                response_format={"type": "json_object"}  # Force JSON mode
+            )
 
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a precise job scoring engine. Always return valid JSON only."
+            raw = chat_completion.choices[0].message.content
+            data = json.loads(raw)
+            
+            # 2. Calculate overall weighted score based on learned weights
+            breakdown = data.get("score_breakdown", {})
+            overall_score = (
+                breakdown.get("skill_match", 0) * weights.skill_match_weight +
+                breakdown.get("keyword_match", 0) * weights.keyword_match_weight +
+                breakdown.get("experience_match", 0) * weights.experience_match_weight +
+                breakdown.get("location_match", 0) * weights.location_match_weight
+            )
+            
+            data["overall_score"] = float(overall_score / 100.0) # Scale back to 0-1
+            return data
+
+        except Exception as e:
+            return {
+                "score_breakdown": {
+                    "skill_match": 0,
+                    "keyword_match": 0,
+                    "experience_match": 0,
+                    "location_match": 0
                 },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=model,
-            temperature=0.1,  # Low temp for consistent scoring
-            response_format={"type": "json_object"}  # Force JSON mode
-        )
+                "overall_score": 0.0,
+                "why_this_job": f"Scoring failed: {str(e)}",
+                "risk_flags": ["scoring_error"]
+            }
 
-        raw = chat_completion.choices[0].message.content
-        data = json.loads(raw)
-        
-        # 2. Calculate overall weighted score based on learned weights
-        breakdown = data.get("score_breakdown", {})
-        overall_score = (
-            breakdown.get("skill_match", 0) * weights.skill_match_weight +
-            breakdown.get("keyword_match", 0) * weights.keyword_match_weight +
-            breakdown.get("experience_match", 0) * weights.experience_match_weight +
-            breakdown.get("location_match", 0) * weights.location_match_weight
-        )
-        
-        data["overall_score"] = int(overall_score)
-        return data
-
-    except Exception as e:
-        return {
-            "score_breakdown": {
-                "skill_match": 0,
-                "keyword_match": 0,
-                "experience_match": 0,
-                "location_match": 0
-            },
-            "overall_score": 0,
-            "why_this_job": f"Scoring failed: {str(e)}",
-            "risk_flags": ["scoring_error"]
-        }
+scoring_service = ScoringService()

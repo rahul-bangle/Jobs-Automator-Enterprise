@@ -1,176 +1,30 @@
 export const initialCampaign = {
-  id: 'campaign-pm-001',
-  name: 'India Fresher PM Search',
-  targetRoles: ['Fresher Product Manager', 'Assistant Product Manager', 'Associate Product Manager'],
+  id: 'campaign-default',
+  name: 'Global PM Search',
+  targetRoles: [],
   adjacentRolesEnabled: true,
-  preferredLocations: 'Bengaluru, Pune, Mumbai, Remote India',
-  workModes: ['Remote', 'Hybrid'],
-  excludedCompanies: "Byju's, WhiteHat Jr",
+  preferredLocations: '',
+  workModes: ['Remote'],
+  excludedCompanies: '',
   trustThreshold: 70,
   relevanceThreshold: 75,
-  workAuthorization: 'Indian citizen. No sponsorship required.',
-  standardAnswers: 'Open to product case studies, analytics exercises, and take-home assignments.',
+  workAuthorization: '',
+  standardAnswers: '',
 };
 
-export const initialImportBatches = [
-  {
-    id: 'batch-001',
-    createdAt: '2026-03-24T08:15:00.000Z',
-    sourceType: 'CSV',
-    fileName: 'pm_leads_curated.csv',
-    totalRows: 18,
-    acceptedRows: 10,
-    reviewRows: 5,
-    rejectedRows: 3,
-  },
-];
-
-export const initialJobs = [
-  {
-    id: 'job-001',
-    companyName: 'Razorpay',
-    jobTitle: 'Assistant Product Manager',
-    source: 'Greenhouse',
-    sourceUrl: 'https://boards.greenhouse.io/razorpay/jobs/001',
-    location: 'Bengaluru',
-    trustScore: 93,
-    relevanceScore: 95,
-    queueStatus: 'accepted',
-    atsType: 'greenhouse',
-    fitSummary: 'Strong PM keywords, fresher-friendly analytical scope, trusted ATS.',
-    riskFlags: [],
-    createdAt: '2026-03-24T09:00:00.000Z',
-  },
-  {
-    id: 'job-002',
-    companyName: 'CRED',
-    jobTitle: 'Associate Product Manager',
-    source: 'Lever',
-    sourceUrl: 'https://jobs.lever.co/cred/002',
-    location: 'Bengaluru',
-    trustScore: 91,
-    relevanceScore: 90,
-    queueStatus: 'accepted',
-    atsType: 'lever',
-    fitSummary: 'Excellent PM fit with user empathy and metrics ownership.',
-    riskFlags: ['Requires product case round'],
-    createdAt: '2026-03-24T09:10:00.000Z',
-  },
-  {
-    id: 'job-003',
-    companyName: 'Finarkein',
-    jobTitle: 'Product Analyst',
-    source: 'Ashby',
-    sourceUrl: 'https://jobs.ashbyhq.com/finarkein/003',
-    location: 'Pune',
-    trustScore: 86,
-    relevanceScore: 78,
-    queueStatus: 'review',
-    atsType: 'ashby',
-    fitSummary: 'Adjacent PM role with analytics emphasis; review if you want broader PM-adjacent coverage.',
-    riskFlags: ['Adjacent role', 'Heavy SQL emphasis'],
-    createdAt: '2026-03-24T09:18:00.000Z',
-  },
-  {
-    id: 'job-004',
-    companyName: 'Stealth Startup',
-    jobTitle: 'Product Manager Intern',
-    source: 'Unknown Board',
-    sourceUrl: 'https://mystery-jobs.example.com/004',
-    location: 'Remote',
-    trustScore: 42,
-    relevanceScore: 81,
-    queueStatus: 'review',
-    atsType: 'unknown',
-    fitSummary: 'Relevant title, but source quality is weak and company identity is incomplete.',
-    riskFlags: ['Unverified domain', 'Company identity unclear'],
-    createdAt: '2026-03-24T09:25:00.000Z',
-  },
-  {
-    id: 'job-005',
-    companyName: 'Generic Hiring Hub',
-    jobTitle: 'Sales Operations Executive',
-    source: 'Aggregator',
-    sourceUrl: 'https://bulk-board.example.com/005',
-    location: 'Mumbai',
-    trustScore: 30,
-    relevanceScore: 22,
-    queueStatus: 'rejected',
-    atsType: 'aggregator',
-    fitSummary: 'Low relevance to PM track.',
-    riskFlags: ['Irrelevant role'],
-    createdAt: '2026-03-24T09:31:00.000Z',
-  },
-];
+export const initialImportBatches = [];
+export const initialJobs = [];
 
 export const initialResumeVariants = [
   {
-    id: 'resume-001',
+    id: 'resume-base',
     label: 'Base Resume',
-    roleFocus: 'General PM',
-    matchScore: 72,
+    roleFocus: 'General',
+    matchScore: 0,
     isBase: true,
-    content:
-      'Rahul Bangle\nAspiring Product Manager\n\nHighlights\n- Built automation-heavy internal workflows\n- Strong agentic tooling and systems thinking\n- Comfortable with product discovery, execution, and analytics collaboration',
-  },
-  {
-    id: 'resume-002',
-    label: 'APM Variant',
-    roleFocus: 'Assistant Product Manager',
-    matchScore: 91,
-    isBase: false,
-    content:
-      'Assistant Product Manager Resume Variant\n\n- Framed product opportunities from job-market demand signals\n- Designed review-first application operations system\n- Strong focus on prioritization, trust filters, and measurable workflow efficiency',
-  },
-  {
-    id: 'resume-003',
-    label: 'Product Analytics Variant',
-    roleFocus: 'PM + Analytics',
-    matchScore: 84,
-    isBase: false,
-    content:
-      'Product Analytics Resume Variant\n\n- Product thinking supported by workflow instrumentation\n- Emphasis on experimentation, metrics, and opportunity sizing\n- Useful for analytics-heavy PM or product ops roles',
+    content: 'Pate your base resume markdown here.',
   },
 ];
 
-export const initialApplicationPackets = [
-  {
-    id: 'packet-001',
-    jobId: 'job-001',
-    resumeVariantId: 'resume-002',
-    approvalStatus: 'ready',
-    warnings: [],
-    fitReasons: ['Strong PM title match', 'Trusted ATS', 'Location aligned'],
-  },
-  {
-    id: 'packet-002',
-    jobId: 'job-002',
-    resumeVariantId: 'resume-002',
-    approvalStatus: 'ready',
-    warnings: ['Requires tailored product case prep'],
-    fitReasons: ['Associate PM title', 'Metrics ownership', 'High trust source'],
-  },
-];
-
-export const initialSubmissionAttempts = [
-  {
-    id: 'submission-001',
-    packetId: 'packet-001',
-    companyName: 'Razorpay',
-    jobTitle: 'Assistant Product Manager',
-    source: 'Greenhouse',
-    timestamp: '2026-03-24T10:45:00.000Z',
-    outcome: 'approved',
-    failureReason: '',
-  },
-  {
-    id: 'submission-002',
-    packetId: 'packet-archive-001',
-    companyName: 'Old Startup',
-    jobTitle: 'APM',
-    source: 'Lever',
-    timestamp: '2026-03-23T17:10:00.000Z',
-    outcome: 'failed',
-    failureReason: 'Missing mandatory work authorization question mapping.',
-  },
-];
+export const initialApplicationPackets = [];
+export const initialSubmissionAttempts = [];

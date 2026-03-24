@@ -7,7 +7,7 @@ import {
   initialSubmissionAttempts,
 } from '../data/mockData.js';
 
-const STORAGE_KEY = 'job_automator_frontend_state_v1';
+const STORAGE_KEY = 'job_automator_production_v1';
 
 const delay = (value) => new Promise((resolve) => setTimeout(() => resolve(value), 120));
 const clone = (value) => JSON.parse(JSON.stringify(value));

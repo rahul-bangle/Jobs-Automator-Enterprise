@@ -4,7 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.extractors.service import extractor_service
 from app.services.processor import processor_service
-from app.services.scoring import score_job
+from app.services.scoring import scoring_service
+from app.services.ats import ats_service
+from app.services.market_analysis import analyze_market
 from app.models.base import Job
 
 logger = logging.getLogger(__name__)
@@ -37,7 +39,7 @@ class UnifiedPipeline:
             markdown_content = await processor_service.process_html(html_content or "")
             
             # 3. Score (Markdown + Metadata -> White-Box Score)
-            scoring_result = await score_job(
+            scoring_result = await scoring_service.score_job(
                 session=session,
                 job_title=raw_metadata.get("job_title", ""),
                 company_name=raw_metadata.get("company_name", ""),
