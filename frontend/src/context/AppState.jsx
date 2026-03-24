@@ -15,6 +15,8 @@ export function AppStateProvider({ children }) {
   });
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
     mockApi.getInitialState().then(setState).finally(() => setLoading(false));
@@ -27,13 +29,37 @@ export function AppStateProvider({ children }) {
         setState((previous) => ({ ...previous, campaign }));
       },
       async previewImport(payload) {
+        setIsProcessing(true);
+        setLoadingProgress(0);
+        
+        // Simulate progress for better UX
+        const progressInterval = setInterval(() => {
+          setLoadingProgress(prev => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return prev + 10;
+          });
+        }, 300);
+
         try {
           const nextPreview = await api.previewImport(payload);
-          setPreview(nextPreview);
+          clearInterval(progressInterval);
+          setLoadingProgress(100);
+          setTimeout(() => {
+            setPreview(nextPreview);
+            setIsProcessing(false);
+          }, 400);
         } catch (error) {
           console.warn('API Preview Failed, falling back to mock:', error);
           const nextPreview = await mockApi.previewImportFile(payload);
-          setPreview(nextPreview);
+          clearInterval(progressInterval);
+          setLoadingProgress(100);
+          setTimeout(() => {
+            setPreview(nextPreview);
+            setIsProcessing(false);
+          }, 400);
         }
       },
       clearPreview() {
@@ -69,7 +95,7 @@ export function AppStateProvider({ children }) {
         setState((previous) => ({ ...previous, settings: saved }));
       },
     }),
-    [preview],
+    [preview, isProcessing, loadingProgress],
   );
 
   const derived = useMemo(() => ({
@@ -88,5 +114,5 @@ export function AppStateProvider({ children }) {
     recentBatches: state.importBatches,
   }), [state]);
 
-  return <AppStateContext.Provider value={{ state, loading, preview, actions, derived }}>{children}</AppStateContext.Provider>;
+  return <AppStateContext.Provider value={{ state, loading, preview, isProcessing, loadingProgress, actions, derived }}>{children}</AppStateContext.Provider>;
 }
