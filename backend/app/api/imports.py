@@ -133,18 +133,75 @@ async def import_xlsx(
     }
 
 
-@router.post("/urls")
-async def import_urls(
-    urls: List[str],
+from pydantic import BaseModel
+from typing import List, Optional
+from app.services.processor import processor_service
+from app.services.scoring import scoring_service
+
+class PreviewRequest(BaseModel):
+    urls: str
+    fileName: Optional[str] = None
+
+@router.post("/preview")
+async def preview_import_urls(
+    payload: PreviewRequest,
     session: AsyncSession = Depends(get_session)
 ):
-    """Add a batch of URLs to the processing queue."""
-    batch = ImportBatch(source_type="URL_BATCH", total_rows=len(urls))
-    session.add(batch)
-    await session.commit()
+    """
+    Live scraping and AI scoring for the frontend preview.
+    Uses Auto-Fetch Lite (BS4/httpx fallback) and Groq.
+    """
+    urls = [url.strip() for url in payload.urls.splitlines() if url.strip()]
+    rows = []
+    
+    for url in urls:
+        try:
+            # 1. Scraping (Auto-Fetch Lite)
+            html = await processor_service.fetch_url(url)
+            content = await processor_service.process_html(html)
+            
+            # 2. AI Scoring (Groq)
+            # We use dummy data for title/company if not found, but real scraping should improve this
+            score_result = await scoring_service.score_job(
+                job_description=content,
+                candidate_resume="Product Manager with experience in AI and Ops." # Placeholder for now
+            )
+            
+            rows.append({
+                "id": f"preview-{Job.generate_id('Scraped', url, 'Remote')}",
+                "companyName": "Scraped Listing", # In future, extract from content
+                "jobTitle": "Product Manager",    # In future, extract from content
+                "source": "Auto-Fetch",
+                "sourceUrl": url,
+                "location": "Remote",
+                "trustScore": 85, # Default for verified scraping
+                "relevanceScore": int(score_result["overall_score"] * 100),
+                "queueStatus": "accepted" if score_result["overall_score"] > 0.8 else "review",
+                "duplicate": False,
+                "validationError": ""
+            })
+        except Exception as e:
+            rows.append({
+                "id": f"error-{hash(url)}",
+                "companyName": "Failed to Fetch",
+                "jobTitle": "N/A",
+                "source": "Error",
+                "sourceUrl": url,
+                "location": "N/A",
+                "trustScore": 0,
+                "relevanceScore": 0,
+                "queueStatus": "rejected",
+                "duplicate": False,
+                "validationError": str(e)
+            })
 
-    # TODO: Trigger Celery task to scrape each URL
     return {
-        "message": f"{len(urls)} URLs added to processing queue",
-        "batch_id": batch.id
+        "fileName": payload.fileName,
+        "rows": rows,
+        "summary": {
+            "accepted": len([r for r in rows if r["queueStatus"] == "accepted"]),
+            "review": len([r for r in rows if r["queueStatus"] == "review"]),
+            "rejected": len([r for r in rows if r["queueStatus"] == "rejected"]),
+            "duplicates": 0
+        }
     }

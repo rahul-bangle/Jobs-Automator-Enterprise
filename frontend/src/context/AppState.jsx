@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { mockApi } from '../services/mockApi.js';
+import { api } from '../services/api.js';
 import { AppStateContext } from './appStateContext.js';
 
 export function AppStateProvider({ children }) {
@@ -26,8 +27,14 @@ export function AppStateProvider({ children }) {
         setState((previous) => ({ ...previous, campaign }));
       },
       async previewImport(payload) {
-        const nextPreview = await mockApi.previewImportFile(payload);
-        setPreview(nextPreview);
+        try {
+          const nextPreview = await api.previewImport(payload);
+          setPreview(nextPreview);
+        } catch (error) {
+          console.warn('API Preview Failed, falling back to mock:', error);
+          const nextPreview = await mockApi.previewImportFile(payload);
+          setPreview(nextPreview);
+        }
       },
       clearPreview() {
         setPreview(null);

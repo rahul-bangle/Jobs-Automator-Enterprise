@@ -44,6 +44,15 @@ body {
 }
 
 button,
+input[type="button"],
+input[type="submit"],
+select,
+summary,
+a {
+  cursor: pointer;
+}
+
+button,
 input,
 select,
 textarea {
