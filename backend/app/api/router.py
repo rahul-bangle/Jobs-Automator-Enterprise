@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api import jobs, campaign, imports, intelligence, trust, packets, dlq, learning
+from app.api import jobs, campaign, imports, intelligence, trust, packets, dlq, learning, v2
 
 api_router = APIRouter()
 
@@ -11,3 +11,4 @@ api_router.include_router(trust.router, prefix="/trust", tags=["trust"])
 api_router.include_router(packets.router, prefix="/packets", tags=["packets"])
 api_router.include_router(dlq.router, prefix="/dlq", tags=["dlq"])
 api_router.include_router(learning.router, prefix="/learning", tags=["learning"])
+api_router.include_router(v2.router, prefix="/v2", tags=["v2"])

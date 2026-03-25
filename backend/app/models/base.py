@@ -51,6 +51,8 @@ class Job(SQLModel, table=True):
     relevance_score: int = 0
     queue_status: str = "review"  # review, accepted, rejected, duplicate, snoozed
     fit_summary: Optional[str] = None
+    salary_extracted: Optional[str] = None
+    discovery_date: datetime = Field(default_factory=datetime.utcnow)
     score_breakdown: Optional[dict] = Field(default={}, sa_column=Column(JSON))
     risk_flags: List[str] = Field(default=[], sa_column=Column(JSON))
     study_guide: Optional[dict] = Field(default={}, sa_column=Column(JSON))

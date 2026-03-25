@@ -10,6 +10,7 @@ const navigation = [
   { to: '/applications', label: 'Applications', hint: 'Approval queue', icon: '→' },
   { to: '/resumes', label: 'Resumes', hint: 'Variants', icon: '✦' },
   { to: '/submissions', label: 'Submissions', hint: 'History', icon: '◌' },
+  { to: '/archive', label: 'Command Archive', hint: 'Autonomous Log', icon: '🛰️' },
   { to: '/settings', label: 'Settings', hint: 'Backend handoff', icon: '⚙' },
 ];
 

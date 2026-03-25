@@ -9,6 +9,7 @@ import ApplicationsPage from './pages/ApplicationsPage.jsx';
 import ResumesPage from './pages/ResumesPage.jsx';
 import SubmissionsPage from './pages/SubmissionsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import HistoryPage from './pages/HistoryPage.jsx';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/applications" element={<ApplicationsPage />} />
         <Route path="/resumes" element={<ResumesPage />} />
         <Route path="/submissions" element={<SubmissionsPage />} />
+        <Route path="/archive" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
     </Routes>
