@@ -41,8 +41,8 @@ function JobsPage() {
         description="Search, filter, and inspect every imported job before it reaches manual review or application approval."
         actions={
           <>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search company, role, location" className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-500" />
-            <select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-500">
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 shadow-sm" />
+            <select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 shadow-sm">
               <option value="all">All statuses</option>
               <option value="accepted">Accepted</option>
               <option value="review">Review</option>
@@ -65,18 +65,18 @@ function JobsPage() {
               <StatusBadge value={selectedJob.queueStatus} />
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Fit summary</div>
-              <p className="mt-2 text-sm text-slate-300">{selectedJob.fitSummary}</p>
+              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Fit summary</div>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">{selectedJob.fitSummary}</p>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Risk flags</div>
+              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Risk flags</div>
               <div className="mt-2 flex flex-wrap gap-2">
-                {selectedJob.riskFlags.length ? selectedJob.riskFlags.map((flag) => <span key={flag} className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs text-amber-200">{flag}</span>) : <span className="text-sm text-slate-400">No active risk flags.</span>}
+                {selectedJob.riskFlags.length ? selectedJob.riskFlags.map((flag) => <span key={flag} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">{flag}</span>) : <span className="text-sm text-slate-400">No active risk flags.</span>}
               </div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Source URL</div>
-              <p className="mt-2 break-all text-sm text-cyan-300">{selectedJob.sourceUrl || 'Imported from spreadsheet only'}</p>
+              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Source URL</div>
+              <p className="mt-2 break-all text-sm font-medium text-blue-600">{selectedJob.sourceUrl || 'Imported from spreadsheet only'}</p>
             </div>
           </>
         ) : null}

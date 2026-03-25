@@ -67,14 +67,14 @@ function ReviewPage() {
             {activeTab === 'summary' ? (
               <div className="space-y-4">
                 <div>
-                  <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Fit summary</div>
-                  <p className="mt-2 text-sm text-slate-600">{selectedJob.fitSummary}</p>
+                  <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Fit summary</div>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{selectedJob.fitSummary}</p>
                 </div>
                 <div>
-                  <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Risk flags</div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Risk flags</div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {selectedJob.riskFlags.map((flag) => (
-                      <span key={flag} className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs text-amber-700">
+                      <span key={flag} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
                         {flag}
                       </span>
                     ))}
@@ -121,22 +121,22 @@ function ReviewPage() {
                   type="button" 
                   disabled={isProcessing}
                   onClick={() => actions.optimizeResume(selectedJob.id)}
-                  className="rounded-2xl border border-cyan-500 bg-cyan-50 px-4 py-3 font-bold text-cyan-700 hover:bg-cyan-100 disabled:opacity-50"
+                  className="rounded-2xl border border-blue-500 bg-blue-50 px-4 py-3 font-bold text-blue-700 hover:bg-blue-100 disabled:opacity-50 transition shadow-sm"
                 >
-                  {isProcessing ? 'Tailoring CV...' : '🚀 Optimize for ATS'}
+                  {isProcessing ? 'Tailoring CV...' : '🚀 Optimize Resume'}
                 </button>
-                <button type="button" onClick={() => actions.approveReviewItem(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl bg-slate-900 px-4 py-3 font-bold text-white hover:bg-slate-800">
+                <button type="button" onClick={() => actions.approveReviewItem(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl bg-slate-900 px-4 py-3 font-bold text-white hover:bg-slate-800 transition shadow-sm">
                   Approve Job
                 </button>
               </div>
-              <button type="button" onClick={() => actions.rejectReviewItem(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl bg-rose-400 px-4 py-3 font-medium text-slate-950 hover:bg-rose-300">
+              <button type="button" onClick={() => actions.rejectReviewItem(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl bg-rose-50 px-4 py-3 font-bold text-rose-700 border border-rose-100 hover:bg-rose-100 transition">
                 Reject
               </button>
-              <button type="button" onClick={() => actions.snoozeReviewItem(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl border border-slate-700 px-4 py-3 font-medium text-slate-200 hover:border-slate-500">
-                Snooze
+              <button type="button" onClick={() => actions.snoozeReviewItem(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition">
+                Snooze for Later
               </button>
-              <button type="button" onClick={() => actions.markDuplicate(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl border border-slate-700 px-4 py-3 font-medium text-slate-200 hover:border-slate-500">
-                Mark duplicate
+              <button type="button" onClick={() => actions.markDuplicate(selectedJob.id).then(() => setSelectedJob(null))} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition">
+                Mark Duplicate
               </button>
             </div>
           </>

@@ -1,17 +1,17 @@
 const toneMap = {
-  accepted: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  review: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  snoozed: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
-  rejected: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-  duplicate: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
-  ready: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
-  approved: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
-  failed: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-  pending: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  accepted: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  review: 'bg-amber-50 text-amber-700 border-amber-200',
+  snoozed: 'bg-slate-50 text-slate-600 border-slate-200',
+  rejected: 'bg-rose-50 text-rose-700 border-rose-200',
+  duplicate: 'bg-slate-50 text-slate-600 border-slate-200',
+  ready: 'bg-blue-50 text-blue-700 border-blue-200',
+  approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  failed: 'bg-rose-50 text-rose-700 border-rose-200',
+  pending: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
 function StatusBadge({ value }) {
-  const tone = toneMap[value] || 'bg-slate-500/15 text-slate-200 border-slate-500/30';
+  const tone = toneMap[value] || 'bg-slate-100 text-slate-600 border-slate-200';
   return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium capitalize ${tone}`}>{value}</span>;
 }
 

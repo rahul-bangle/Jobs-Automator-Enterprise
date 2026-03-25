@@ -8,22 +8,26 @@ from app.services.ats_engine_v2 import ats_engine
 from app.services.tailor_engine_v2 import tailor_service
 from app.services.submission_agent import submission_agent
 from typing import List, Dict
+import logging
 
-router = APIRouter(prefix="/v2", tags=["V2 Pipeline"])
+logger = logging.getLogger("V2Router")
 
-@router.post("/discovery")
+router = APIRouter(tags=["V2 Pipeline"])
+
+@router.post("/jobs/discovery")
 async def run_discovery(
     query: str,
-    locations: List[str] = Body(...),
+    locations: List[str] = Body(default=["Hyderabad"]),
     limit: int = 10,
     session: AsyncSession = Depends(get_session)
 ):
-    """Tier 1: Discover jobs across LinkedIn, Indeed, Glassdoor."""
+    """Tier 1: Discover jobs across LinkedIn, Indeed, Glassdoor (REST Aligned)."""
+    logger.info(f"V2 Discovery Route Triggered: {query} in {locations}")
     jobs = await discovery_service.search_jobs(query, locations, limit)
     for job in jobs:
-        session.add(job)
+        await session.merge(job)
     await session.commit()
-    return {"discovered_count": len(jobs), "jobs": [j.id for j in jobs]}
+    return {"discovered_count": len(jobs), "jobs": jobs}
 
 @router.post("/optimize/{job_id}")
 async def optimize_application(
@@ -103,6 +107,8 @@ async def get_audit_history(
             "company_name": j.company_name,
             "location": j.location,
             "salary_extracted": j.salary_extracted,
+            "site": j.site,
+            "source_url": j.source_url,
             "ats_score": j.relevance_score, # Mapping score breakdown total
             "status": "applied" if j.queue_status == "accepted" else "discovered"
         })

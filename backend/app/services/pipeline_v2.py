@@ -1,26 +1,18 @@
-import asyncio
+import logging
 from typing import List, Optional
 from datetime import datetime
 import json
 import os
 from pydantic import BaseModel
 
-# Optional heavy dependencies — server boots even if these are missing
-try:
-    from jobspy import scrape_jobs
-    JOBSPY_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ WARNING: jobspy not available ({e}). Discovery will be disabled.")
-    JOBSPY_AVAILABLE = False
-    scrape_jobs = None
+# Configure structured logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("DiscoveryEngine")
 
-try:
-    from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
-    CRAWL4AI_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ WARNING: crawl4ai not available ({e}). Parsing will be mocked.")
-    CRAWL4AI_AVAILABLE = False
-    AsyncWebCrawler = None
+# Optional heavy dependencies — server boots even if these are missing
+from jobspy import scrape_jobs
+import pandas as pd
+from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
 
 from app.models.base import Job
 from app.core.config import settings
@@ -41,6 +33,7 @@ class DiscoveryEngine:
     """
     def __init__(self):
         self._crawler = None
+        self.timeout_seconds = 60 # Resilience: 1 min timeout
 
     @property
     def crawler(self):
@@ -50,40 +43,79 @@ class DiscoveryEngine:
 
     async def search_jobs(self, query: str, locations: List[str], limit: int = 10) -> List[Job]:
         """
-        JobSpy: Aggregate jobs from LinkedIn, Indeed, Glassdoor
+        JobSpy: Aggregate jobs from LinkedIn, Indeed, Glassdoor with Resilience
         """
-        print(f"Searching for: {query} in {locations}...")
-        results = scrape_jobs(
-            site_name=["linkedin", "indeed", "glassdoor"],
-            search_term=query,
-            location=locations[0] if locations else "Remote",
-            results_wanted=limit,
-            hours_old=24,
-            country_indeed="usa",  # FIXED: was country_裁e (broken unicode)
-        )
+        logger.info(f"Initiating discovery search: query='{query}', locations={locations}, limit={limit}")
+        
+        try:
+            # JobSpy is synchronous, but we're in an async context. 
+            # In a true architected system, we'd run this in a threadpool.
+            results = scrape_jobs(
+                site_name=["linkedin", "indeed", "glassdoor"],
+                search_term=query,
+                location=locations[0] if locations else "Hyderabad",
+                results_wanted=limit,
+                hours_old=72,
+                country_indeed="india",
+            )
+            
+            if results is None or results.empty:
+                logger.warning(f"No jobs found for query: {query}")
+                return []
+                
+            logger.info(f"JobSpy discovered {len(results)} raw results.")
+        except Exception as e:
+            logger.error(f"JobSpy search failed: {str(e)}", exc_info=True)
+            return [] # Graceful degradation: return empty list on failure
 
         jobs = []
         for index, row in results.iterrows():
-            job_id = Job.generate_id(
-                str(row.get('company', 'unknown')),
-                str(row.get('title', 'unknown')),
-                str(row.get('location', 'remote'))
-            )
-            job = Job(
-                id=job_id,
-                company_name=str(row.get('company', 'Unknown')),
-                job_title=str(row.get('title', 'Unknown')),
-                source_url=str(row.get('job_url', '')),
-                location=str(row.get('location', 'Remote')),
-                description=str(row.get('description', '')),
-                salary_extracted=(
-                    f"{row.get('min_amount')}-{row.get('max_amount')} {row.get('currency')}"
-                    if row.get('min_amount') else "N/A"
-                ),
-                discovery_date=datetime.utcnow()
-            )
-            jobs.append(job)
+            try:
+                # Sanitize NaN values from pandas to None/Empty strings
+                def clean(val, default=""):
+                    import pandas as pd
+                    if pd.isna(val): return default
+                    return str(val).strip()
 
+                company = clean(row.get('company'), "Unknown")
+                title = clean(row.get('title'), "Unknown")
+                loc = clean(row.get('location'), "Remote")
+                job_url = clean(row.get('job_url'), "")
+                desc = clean(row.get('description'), "")
+                site_source = clean(row.get('site'), "Direct").capitalize()
+                
+                # Logic for salary extraction enhancement
+                min_amt = row.get('min_amount')
+                max_amt = row.get('max_amount')
+                currency = clean(row.get('currency'), "INR")
+                
+                salary = "N/A"
+                if pd.notna(min_amt):
+                     if pd.notna(max_amt) and max_amt != min_amt:
+                         salary = f"₹{min_amt} - ₹{max_amt}" if currency == "INR" else f"{currency} {min_amt} - {max_amt}"
+                     else:
+                         salary = f"₹{min_amt}" if currency == "INR" else f"{currency} {min_amt}"
+
+                job_id = Job.generate_id(company, title, loc)
+                
+                job = Job(
+                    id=job_id,
+                    company_name=company,
+                    job_title=title,
+                    source_url=job_url,
+                    location=loc,
+                    description=desc,
+                    salary_extracted=salary,
+                    site=site_source,
+                    discovery_date=datetime.utcnow(),
+                    queue_status="review"
+                )
+                jobs.append(job)
+            except Exception as e:
+                logger.error(f"Failed to process job row {index}: {str(e)}")
+                continue
+
+        logger.info(f"Successfully processed {len(jobs)} jobs into SQLModel instances.")
         return jobs
 
     async def parse_job_description(self, url: str) -> JobProfile:

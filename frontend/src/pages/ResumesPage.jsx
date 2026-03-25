@@ -16,36 +16,36 @@ function ResumesPage() {
 
       {state.resumeVariants.length ? (
         <div className="grid gap-6 xl:grid-cols-[0.85fr,1.15fr]">
-          <section className="space-y-4 rounded-3xl border border-slate-800 bg-slate-950/90 p-6">
+          <section className="space-y-4 rounded-3xl border border-slate-200 bg-white/70 p-6 backdrop-blur-md shadow-sm">
             {state.resumeVariants.map((variant) => (
               <button
                 key={variant.id}
                 type="button"
                 onClick={() => setSelectedId(variant.id)}
-                className={`w-full rounded-2xl border p-4 text-left transition ${
-                  variant.id === selectedId ? 'border-cyan-500/40 bg-cyan-500/10' : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                className={`w-full rounded-2xl border p-4 text-left transition shadow-sm ${
+                  variant.id === selectedId ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="font-medium text-white">{variant.label}</div>
-                    <div className="mt-1 text-sm text-slate-400">{variant.roleFocus}</div>
+                    <div className="font-bold text-slate-900">{variant.label}</div>
+                    <div className="mt-1 text-sm font-medium text-slate-500">{variant.roleFocus}</div>
                   </div>
-                  {variant.isBase ? <StatusBadge value="ready" /> : <span className="text-sm text-cyan-200">{variant.matchScore}% match</span>}
+                  {variant.isBase ? <StatusBadge value="ready" /> : <span className="text-sm font-bold text-blue-600">{variant.matchScore}% match</span>}
                 </div>
               </button>
             ))}
           </section>
 
-          <section className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6">
+          <section className="rounded-3xl border border-slate-200 bg-white/70 p-6 backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Preview</div>
-                <h2 className="mt-2 text-2xl font-semibold text-white">{selected?.label}</h2>
+                <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Preview</div>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-900">{selected?.label}</h2>
               </div>
-              <div className="text-sm text-cyan-200">{selected?.matchScore}% recommended match</div>
+              <div className="text-sm font-bold text-blue-600">{selected?.matchScore}% match</div>
             </div>
-            <pre className="mt-6 whitespace-pre-wrap rounded-3xl border border-slate-800 bg-slate-900 p-5 text-sm leading-7 text-slate-200">
+            <pre className="mt-6 whitespace-pre-wrap rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm leading-relaxed text-slate-600 shadow-inner overflow-x-auto">
               {selected?.content}
             </pre>
           </section>

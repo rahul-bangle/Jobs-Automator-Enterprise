@@ -41,22 +41,22 @@ function DashboardPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
-        <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6">
-          <h2 className="text-xl font-semibold text-white">Recent Import Batches</h2>
-          <p className="mt-2 text-sm text-slate-400">Bulk-upload workflow is active and backend contracts are already reflected in the UI.</p>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-900">Recent Import Batches</h2>
+          <p className="mt-2 text-sm text-slate-500">Bulk-upload workflow is active and backend contracts are already reflected in the UI.</p>
           <div className="mt-5">
             <DataTable columns={batchColumns} rows={derived.recentBatches} />
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6">
-          <h2 className="text-xl font-semibold text-white">Campaign Snapshot</h2>
-          <div className="mt-5 space-y-4 text-sm text-slate-300">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-900">Campaign Snapshot</h2>
+          <div className="mt-5 space-y-4 text-sm text-slate-600">
             <div>
               <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Target roles</div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {state.campaign?.targetRoles.map((role) => (
-                  <span key={role} className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-cyan-200">
+                  <span key={role} className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-blue-600 font-medium">
                     {role}
                   </span>
                 ))}
@@ -76,9 +76,9 @@ function DashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6">
-        <h2 className="text-xl font-semibold text-white">Submission Activity</h2>
-        <p className="mt-2 text-sm text-slate-400">Approval events are mocked now and will later map directly to backend submission records.</p>
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-slate-900">Submission Activity</h2>
+        <p className="mt-2 text-sm text-slate-500">Approval events are mocked now and will later map directly to backend submission records.</p>
         <div className="mt-5">
           <DataTable columns={submissionColumns} rows={state.submissionAttempts} />
         </div>

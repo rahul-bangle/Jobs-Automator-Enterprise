@@ -50,24 +50,30 @@ function ApplicationsPage() {
         {selectedPacket ? (
           <>
             <div>
-              <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Fit reasons</div>
-              <ul className="mt-3 space-y-2 text-sm text-slate-300">
+              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Fit reasons</div>
+              <ul className="mt-3 space-y-2 text-sm text-slate-600">
                 {selectedPacket.fitReasons.map((reason) => (
-                  <li key={reason}>• {reason}</li>
+                  <li key={reason} className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                    {reason}
+                  </li>
                 ))}
               </ul>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Warnings</div>
-              <ul className="mt-3 space-y-2 text-sm text-slate-300">
+              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Warnings</div>
+              <ul className="mt-3 space-y-2 text-sm text-slate-600">
                 {(selectedPacket.warnings.length ? selectedPacket.warnings : ['No critical warnings recorded.']).map((warning) => (
-                  <li key={warning}>• {warning}</li>
+                  <li key={warning} className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-rose-200" />
+                    {warning}
+                  </li>
                 ))}
               </ul>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Resume variant</div>
-              <select value={selectedPacket.resumeVariantId} onChange={(event) => actions.setPacketResumeVariant(selectedPacket.id, event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-500">
+              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Resume variant</div>
+              <select value={selectedPacket.resumeVariantId} onChange={(event) => actions.setPacketResumeVariant(selectedPacket.id, event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 shadow-sm">
                 {state.resumeVariants.map((variant) => (
                   <option key={variant.id} value={variant.id}>
                     {variant.label} ({variant.matchScore}%)
