@@ -8,7 +8,7 @@ const navigation = [
   { to: '/jobs', label: 'Jobs', hint: 'Inventory', icon: '▣' },
   { to: '/review', label: 'Review Queue', hint: 'Manual triage', icon: '◇' },
   { to: '/applications', label: 'Applications', hint: 'Approval queue', icon: '→' },
-  { to: '/resumes', label: 'Resumes', hint: 'Variants', icon: '✦' },
+  { to: '/resumes', label: 'Profiling', hint: 'Master Profile', icon: '✦' },
   { to: '/submissions', label: 'Submissions', hint: 'History', icon: '◌' },
   { to: '/discovery', label: 'Discovery', hint: 'Auto Job Hunt', icon: '🔍' },
   { to: '/archive', label: 'Command Archive', hint: 'Autonomous Log', icon: '🛰️' },
@@ -21,20 +21,20 @@ function AppShell() {
   const title = navigation.find((item) => item.to === location.pathname)?.label ?? 'Job Automator';
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-white text-slate-900">
+    <div className="relative h-screen flex flex-col overflow-hidden bg-white text-slate-900">
       <div className="pointer-events-none absolute inset-0 opacity-90">
         <div className="absolute left-[-12rem] top-[-8rem] h-80 w-80 rounded-full bg-blue-400/10 blur-3xl" />
         <div className="absolute right-[-8rem] top-20 h-72 w-72 rounded-full bg-sky-300/20 blur-3xl" />
         <div className="absolute bottom-[-10rem] left-1/3 h-80 w-80 rounded-full bg-emerald-300/10 blur-3xl" />
       </div>
-      <div className="relative flex min-h-screen">
-        <aside className="hidden w-72 border-r border-slate-200/80 bg-white/70 backdrop-blur-xl xl:flex xl:flex-col">
-          <div className="border-b border-slate-100/70 px-6 py-6">
-            <div className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.35em] text-blue-600">Job Automator</div>
-            <h1 className="mt-4 text-[1.95rem] font-bold leading-tight text-slate-900 tracking-tight">Command Center</h1>
-            <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">Trusted-source PM search with review-first application ops.</p>
+      <div className="relative flex flex-1 overflow-hidden">
+        <aside className="hidden w-72 h-full border-r border-slate-200/80 bg-white/70 backdrop-blur-xl xl:flex xl:flex-col shrink-0">
+          <div className="border-b border-slate-100/70 px-6 py-8">
+            <div className="inline-flex items-center rounded-full border border-pro-blue/20 bg-pro-blue/5 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.4em] text-pro-blue shadow-sm">
+              Job Automator
+            </div>
           </div>
-          <nav className="flex-1 space-y-2 px-3 py-4">
+          <nav className="flex-1 space-y-2 px-3 py-4 overflow-y-auto custom-scrollbar">
             {navigation.map((item) => (
               <NavLink
                 key={item.to}
@@ -70,7 +70,7 @@ function AppShell() {
             </div>
           </div>
         </aside>
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex h-full flex-1 flex-col overflow-hidden">
           <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-xl">
             <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
               <div>
@@ -97,7 +97,7 @@ function AppShell() {
               </div>
             </div>
           </header>
-          <main className="flex-1 px-5 py-6 lg:px-8">
+          <main className="flex-1 overflow-y-auto px-5 py-6 lg:px-8">
             <Outlet />
           </main>
         </div>

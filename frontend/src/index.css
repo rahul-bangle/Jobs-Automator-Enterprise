@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
 
 :root {
   font-family: "Fira Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -32,7 +32,7 @@
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   box-shadow: 0 4px 24px -1px rgba(15, 23, 42, 0.05);
-  @apply rounded-3xl overflow-hidden transition-all duration-300;
+  @apply rounded-3xl transition-all duration-300;
 }
 
 .pro-glass-card:hover {
@@ -59,8 +59,8 @@ body {
 }
 
 ::selection {
-  background: var(--primary-glow);
-  color: white;
+  background-color: #3B82F6;
+  color: #ffffff;
 }
 
 code,
@@ -71,7 +71,7 @@ pre,
 
 /* Glassmorphism Utilities */
 .glass-card {
-  @apply backdrop-blur-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-3xl overflow-hidden;
+  @apply backdrop-blur-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-3xl;
   box-shadow: 0 4px 24px -1px rgba(15, 23, 42, 0.05);
 }
 

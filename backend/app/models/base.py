@@ -78,7 +78,7 @@ class ResumeVariant(SQLModel, table=True):
 class ApplicationPacket(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     job_id: str = Field(foreign_key="job.id")
-    resume_variant_id: int = Field(foreign_key="resumevariant.id")
+    resume_variant_id: Optional[int] = Field(default=None, foreign_key="resumevariant.id")
     approval_status: str = "ready"  # ready, approved
     warnings: List[str] = Field(default=[], sa_column=Column(JSON))
     fit_reasons: List[str] = Field(default=[], sa_column=Column(JSON))

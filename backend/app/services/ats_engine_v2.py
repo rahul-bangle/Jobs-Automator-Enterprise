@@ -1,10 +1,11 @@
 from typing import List, Dict, Optional
 import json
-import os
 from groq import Groq
+import os
 from pydantic import BaseModel
 from app.services.pipeline_v2 import JobProfile
 from app.core.config import settings
+from app.core.llm import llm_client as groq_client
 
 import logging
 logger = logging.getLogger("ATSEngineV2")
@@ -17,6 +18,22 @@ class ScoreResult(BaseModel):
     is_overfitted: bool
     readability_pass: bool
     feedback: List[str]
+
+STUDY_GUIDE_PROMPT = """You are a Technical Mentor for a Fresher Product Manager. 
+Analyze the Job Description against the Candidate's Resume. Identify what they need to LEARN before applying.
+
+RESUME:
+{resume_text}
+
+JOB DESCRIPTION:
+{job_description}
+
+Return ONLY a JSON object with:
+{{
+  "skill_gaps": ["list of tech/skills missing"],
+  "business_context": "Brief summary of the company's product/market",
+  "research_prompts": ["3 specific topics to research to impress the interviewer"]
+}}"""
 
 class ATSEngineV2:
     """
@@ -111,11 +128,8 @@ class ATSEngineV2:
                 text.append(str(resume_json["sections"][section]))
         return " ".join(text)
 
-    def _get_groq_client(self) -> Groq:
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise ValueError("GROQ_API_KEY not set in environment")
-        return Groq(api_key=api_key)
+    def _get_groq_client(self) -> Optional[Groq]:
+        return groq_client
 
     async def generate_growth_plan(self, job_profile: JobProfile, resume_json: Dict) -> Dict:
         """
@@ -166,6 +180,21 @@ class ATSEngineV2:
                 "projects": [],
                 "error": str(e)
             }
+
+    async def generate_study_guide(self, resume_text: str, jd_text: str) -> Dict:
+        """Legacy compatibility: Generates a pre-flight study guide for the candidate."""
+        try:
+            client = self._get_groq_client()
+            response = client.chat.completions.create(
+                messages=[{"role": "user", "content": STUDY_GUIDE_PROMPT.format(resume_text=resume_text[:4000], job_description=jd_text[:3000])}],
+                model=settings.GROQ_BATCH_MODEL,
+                temperature=0.2,
+                response_format={"type": "json_object"}
+            )
+            return json.loads(response.choices[0].message.content)
+        except Exception as e:
+            logger.error(f"Study Guide generation failed: {e}")
+            return {"skill_gaps": [], "business_context": "Failed to analyze", "research_prompts": []}
 
 # Singleton
 ats_engine = ATSEngineV2()

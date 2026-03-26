@@ -135,7 +135,7 @@ async def import_xlsx(
 
 from pydantic import BaseModel
 from typing import List, Optional
-from app.services.processor import processor_service
+from app.services.pipeline_v2 import discovery_service
 from app.services.scoring import scoring_service
 
 class PreviewRequest(BaseModel):
@@ -157,8 +157,8 @@ async def preview_import_urls(
     for url in urls:
         try:
             # 1. Scraping (Auto-Fetch Lite)
-            html = await processor_service.fetch_url(url)
-            content = await processor_service.process_html(html)
+            html = await discovery_service.fetch_url(url)
+            content = await discovery_service.process_html(html)
             # 2. AI Scoring (Groq)
             score_result = await scoring_service.score_job(
                 session=session,

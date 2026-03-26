@@ -4,8 +4,9 @@ from sqlmodel import select
 from app.core.db import get_session
 from app.models.base import Job, Campaign
 from app.services.scoring import scoring_service
-from app.services.ats import ats_service
 from app.services.market_analysis import analyze_market
+from app.services.ats_engine_v2 import ats_engine
+from app.services.tailor_engine_v2 import tailor_service
 
 router = APIRouter()
 
@@ -107,7 +108,7 @@ async def optimize_resume_for_job(
     campaign = result.scalars().first()
     candidate_profile = f"Role: {campaign.target_role}, Tech: {campaign.tech_stack}" if campaign else "Fresher"
 
-    variant = await ats_service.optimize_resume(session, job_id, candidate_profile, job.description or "")
+    variant = await tailor_service.legacy_optimize_resume(session, job_id, candidate_profile, job.description or "")
     return {
         "status": "PASS" if variant.ats_score >= 75 else "FAIL",
         "score": variant.ats_score,
@@ -130,7 +131,7 @@ async def get_study_guide(
         result = await session.execute(select(Campaign).where(Campaign.is_active == True))
         campaign = result.scalars().first()
         candidate_profile = f"Tech: {campaign.tech_stack}" if campaign else "Fresher"
-        job.study_guide = await ats_service.generate_study_guide(candidate_profile, job.description or "")
+        job.study_guide = await ats_engine.generate_study_guide(candidate_profile, job.description or "")
         session.add(job)
         await session.commit()
 

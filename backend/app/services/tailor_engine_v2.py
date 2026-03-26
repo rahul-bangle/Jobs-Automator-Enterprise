@@ -1,10 +1,12 @@
 import asyncio
-from typing import List, Dict, Optional
 import json
+from typing import List, Dict, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.pipeline_v2 import JobProfile
 from app.services.ats_engine_v2 import ats_engine, ScoreResult
+from app.models.base import ResumeVariant, Job
 from app.core.config import settings
-from groq import Groq
+from app.core.llm import llm_client as groq_client
 
 class TailorEngineV2:
     """
@@ -12,13 +14,11 @@ class TailorEngineV2:
     """
     
     def __init__(self):
-        self._client = None
+        pass
 
     @property
     def client(self):
-        if self._client is None:
-            self._client = Groq(api_key=settings.GROQ_API_KEY)
-        return self._client
+        return groq_client
 
     async def optimize_resume(
         self, 
@@ -107,8 +107,47 @@ class TailorEngineV2:
             )
             return json.loads(completion.choices[0].message.content)
         except Exception as e:
-            print(f"❌ Tailoring LLM Error: {e}")
+            print(f"Tailoring LLM Error: {e}")
             return resume
+
+    async def legacy_optimize_resume(
+        self, 
+        session: AsyncSession,
+        job_id: str,
+        resume_text: str,
+        jd_text: str
+    ) -> ResumeVariant:
+        """Legacy compatibility: String-based optimization loop that returns a ResumeVariant."""
+        # Map string inputs to v2 structured logic
+        job_profile = JobProfile(
+            role="Optimized Role",
+            skills_required=[],
+            tools=[],
+            experience_level="N/A",
+            keywords=[],
+            soft_skills=[]
+        )
+        # Convert resume_text (markdown) to a dummy dict for v2 logic
+        # Ideally, we should parse it, but for a thin wrapper, we can treat it as 'basics.summary'
+        base_resume = {"sections": {"summary": resume_text}}
+        
+        result = await self.optimize_resume(base_resume, job_profile, max_iterations=1)
+        optimized_content = json.dumps(result["final_resume"])
+        
+        variant = ResumeVariant(
+            job_id=job_id,
+            filename=f"optimized_v2_{job_id[:8]}.md",
+            content=optimized_content,
+            ats_score=result["best_score"],
+            version=1,
+            status="PASS" if result["best_score"] >= 75 else "FAIL",
+            keywords=[]
+        )
+        
+        session.add(variant)
+        await session.commit()
+        await session.refresh(variant)
+        return variant
 
 # Singleton
 tailor_service = TailorEngineV2()

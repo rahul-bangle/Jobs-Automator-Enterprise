@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, UploadFile, File
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.core.db import get_session
@@ -7,27 +8,83 @@ from app.services.pipeline_v2 import discovery_service
 from app.services.ats_engine_v2 import ats_engine
 from app.services.tailor_engine_v2 import tailor_service
 from app.services.submission_agent import submission_agent
-from typing import List, Dict
+from app.services.resume_parser import resume_parser
+from app.core.orchestrator import orchestrator
+from typing import List, Dict, Any, Optional
 import logging
 
 logger = logging.getLogger("V2Router")
 
 router = APIRouter(tags=["V2 Pipeline"])
 
+from fastapi.responses import StreamingResponse
+import json
+
+@router.get("/jobs/suggest")
+async def get_job_suggestions(q: str = ""):
+    """Returns AI-powered job title suggestions for autocomplete."""
+    suggestions = await discovery_service.get_suggestions(q)
+    return {"suggestions": suggestions}
+
+class DiscoveryRequest(BaseModel):
+    locations: List[str] = ["Hyderabad"]
+
 @router.post("/jobs/discovery")
 async def run_discovery(
     query: str,
-    locations: List[str] = Body(default=["Hyderabad"]),
+    payload: DiscoveryRequest,
     limit: int = 10,
     session: AsyncSession = Depends(get_session)
 ):
-    """Tier 1: Discover jobs across LinkedIn, Indeed, Glassdoor (REST Aligned)."""
-    logger.info(f"V2 Discovery Route Triggered: {query} in {locations}")
-    jobs = await discovery_service.search_jobs(query, locations, limit)
-    for job in jobs:
-        await session.merge(job)
-    await session.commit()
-    return {"discovered_count": len(jobs), "jobs": jobs}
+    """Tier 1: Streamed Discovery across LinkedIn, Indeed, Glassdoor."""
+    locations = payload.locations
+    logger.info(f"V2 Streamed Discovery Started: {query} in {locations}")
+
+    async def stream_results():
+        # NDJSON format: One JSON object per line, no surrounding array
+        # This is much easier and more robust for the frontend to parse
+        
+        # We'll use a local active campaign check for scoring
+        campaign = None
+        try:
+            from sqlalchemy.future import select as fselect
+            res = await session.execute(fselect(Campaign).where(Campaign.is_active == True))
+            campaign = res.scalars().first()
+        except Exception as e:
+            logger.debug(f"Campaign fetch failed for scoring: {e}")
+
+        async for job in discovery_service.search_jobs(query, locations, limit):
+            # Check if job already exists in DB
+            existing_job = await session.get(Job, job.id)
+            is_new = existing_job is None
+            
+            # Auto-score if possible
+            if campaign:
+                try:
+                    from app.services.scoring import scoring_service
+                    profile = f"Role: {campaign.target_role}, Tech: {campaign.tech_stack}"
+                    score_data = await scoring_service.score_job(
+                        session=session,
+                        job_title=job.job_title,
+                        company_name=job.company_name,
+                        candidate_profile=profile
+                    )
+                    job.relevance_score = int(score_data.get("overall_score", 0) * 100)
+                except Exception as score_err:
+                    logger.debug(f"Scoring failed for {job.job_title}: {score_err}")
+
+            # Save/Update to DB
+            await session.merge(job)
+            await session.commit()
+
+            # Yield to client with 'is_new' status
+            job_dict = json.loads(job.json())
+            job_dict["is_new"] = is_new
+            
+            # NDJSON: JSON + Newline
+            yield json.dumps(job_dict) + "\n"
+
+    return StreamingResponse(stream_results(), media_type="application/x-ndjson")
 
 @router.post("/optimize/{job_id}")
 async def optimize_application(
@@ -67,26 +124,18 @@ async def optimize_application(
     }
 
 @router.post("/apply/{job_id}")
-async def submit_application(
-    job_id: str,
-    session: AsyncSession = Depends(get_session)
-):
-    """Tier 4: Safety Gate + Lazy Render + BrowserUse Submit."""
-    # 1. Get best variant
-    stmt = select(ResumeVariant).where(ResumeVariant.job_id == job_id).order_by(ResumeVariant.ats_score.desc())
-    variant = (await session.execute(stmt)).scalars().first()
-    if not variant: raise HTTPException(status_code=400, detail="No optimized variant found")
-    
-    job = await session.get(Job, job_id)
-    
-    # 2. Process via Submission Agent
-    # [Passing data for Safety Gate and Rendering]
-    outcome = await submission_agent.process_submission(
-        {"url": job.source_url},
-        {"best_score": variant.ats_score, "final_resume": {"basics": {"name": "User"}}}
-    )
-    
-    return outcome
+async def apply_to_job(job_id: str, session: AsyncSession = Depends(get_session)):
+    """
+    Tier 4: The 'Closer' — Now powered by Multi-Agent Orchestration.
+    """
+    return await orchestrator.process_job_full_cycle(job_id, session)
+
+@router.post("/batch-apply")
+async def batch_apply_to_jobs(job_ids: List[str], session: AsyncSession = Depends(get_session)):
+    """
+    Tier 5: High-Performance Batch Automation.
+    """
+    return await orchestrator.process_batch_jobs(job_ids, session)
 
 @router.post("/growth/{job_id}")
 async def generate_job_growth_plan(
@@ -143,3 +192,36 @@ async def get_audit_history(
             "status": "applied" if j.queue_status == "accepted" else "discovered"
         })
     return history
+
+@router.post("/resumes/import")
+async def import_resume(
+    file: UploadFile = File(...),
+    session: AsyncSession = Depends(get_session)
+):
+    """Tier 2: Universal Parser (PDF -> Structured JSON)."""
+    logger.info(f"🚀 Import Triggered for file: {file.filename}")
+    
+    # 1. Read file
+    content = await file.read()
+    
+    if file.filename.endswith(".pdf"):
+        import pypdf
+        import io
+        pdf = pypdf.PdfReader(io.BytesIO(content))
+        text = ""
+        for page in pdf.pages:
+            text += page.extract_text() or ""
+    else:
+        # content is bytes, decode to string
+        text = content.decode("utf-8", errors="ignore")
+        
+    # 2. Parse via LLM
+    structured_json = await resume_parser.parse_text_to_json(text)
+    
+    # 3. Store in DB (Assuming Resume model exists or updating Profile)
+    # For now, we'll just return the structured JSON for the frontend to confirm
+    return {
+        "filename": file.filename,
+        "message": "Parsed successfully",
+        "resume": structured_json
+    }

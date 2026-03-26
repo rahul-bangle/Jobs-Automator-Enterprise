@@ -1,9 +1,16 @@
-export const API_BASE_URL = 'http://localhost:8001/api/v1';
+const getApiUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (!envUrl && import.meta.env.PROD) {
+    throw new Error("VITE_API_URL is required in production environment.");
+  }
+  return envUrl || 'http://127.0.0.1:8001';
+};
+
+export const API_BASE_URL = `${getApiUrl()}/api/v1`;
+const API_V2_URL = `${getApiUrl()}/api/v2`;
 
 export const api = {
   async getInitialState() {
-    // For now, we mix real and mock data to ensure a smooth transition
-    // In a full implementation, this hits /jobs, /campaign, etc.
     const response = await fetch(`${API_BASE_URL}/jobs`);
     if (!response.ok) throw new Error('Failed to fetch initial state');
     const jobs = await response.json();
@@ -26,8 +33,7 @@ export const api = {
   },
 
   async confirmImportBatch(preview) {
-    // Push the accepted jobs to the backend
-    const response = await fetch(`${API_BASE_URL}/imports/csv`, { // Re-using CSV logic or similar for batch
+    const response = await fetch(`${API_BASE_URL}/imports/csv`, {
        method: 'POST',
        headers: { 'Content-Type': 'application/json' },
        body: JSON.stringify(preview.rows.filter(r => r.queueStatus === 'accepted')),
@@ -50,7 +56,7 @@ export const api = {
   },
 
   async generateGrowthPlan(jobId) {
-    const response = await fetch(`${API_BASE_URL}/v2/growth/${jobId}`, {
+    const response = await fetch(`${API_V2_URL}/growth/${jobId}`, {
       method: 'POST'
     });
     if (!response.ok) throw new Error('Failed to generate growth plan');
@@ -58,17 +64,17 @@ export const api = {
   },
 
   async discovery(query, location, limit = 10) {
-    const response = await fetch(`${API_BASE_URL}/v2/jobs/discovery?query=${query}&limit=${limit}`, {
+    const response = await fetch(`${API_V2_URL}/jobs/discovery?query=${query}&limit=${limit}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify([location])
+      body: JSON.stringify({ locations: [location] })
     });
     if (!response.ok) throw new Error('Discovery failed');
     return await response.json();
   },
 
   async optimize(jobId) {
-    const response = await fetch(`${API_BASE_URL}/v2/optimize/${jobId}`, {
+    const response = await fetch(`${API_V2_URL}/optimize/${jobId}`, {
       method: 'POST'
     });
     if (!response.ok) throw new Error('Optimization failed');
@@ -76,7 +82,7 @@ export const api = {
   },
 
   async apply(jobId) {
-    const response = await fetch(`${API_BASE_URL}/v2/apply/${jobId}`, {
+    const response = await fetch(`${API_V2_URL}/apply/${jobId}`, {
       method: 'POST'
     });
     if (!response.ok) throw new Error('Application deployment failed');

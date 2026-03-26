@@ -12,7 +12,9 @@
     - [x] Resolved 500 IntegrityError (UNIQUE constraint) with `session.merge`.
     - [x] Hardened environment (Playwright/JobSpy/FastAPI).
     - [x] Implemented idempotent discovery & structured logging.
-- [/] Initializing Phase 08
+- [x] Phase 08: Visualized Results Table (Virtualized tracking implemented)
+- [x] Phase 10: Backend Stabilisation (6-point patch applied & verified)
+- [/] Ready for Phase 10: Resume Mastery (per ROADMAP.md)
 
 ## 🧠 Recent Decisions
 - **Idempotency**: Standardized on `session.merge` to prevent 500 errors during rediscovery.
@@ -22,5 +24,5 @@
 Phase 07 is fully verified and stable. Discovery pipeline is functional. Ready to proceed with Phase 08 (Virtualized Results Table).
 
 ## 🛠️ Pending Todos
-- [ ] Implement virtualization for 1,000+ job tracking in Phase 08.
-- [ ] Verify recursive self-healing loop for score > 75.
+- [x] Implement virtualization for 1,000+ job tracking in Phase 08.
+- [ ] Implement Phase 10: Resume Mastery (Optimization Engine).

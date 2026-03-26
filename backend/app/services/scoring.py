@@ -1,12 +1,9 @@
-"""
-White-Box Scoring Engine — Groq (llama-3.3-70b-versatile for quality)
-Produces a transparent 4-metric score breakdown per job.
-Metrics: Skill (40%) | Keyword (30%) | Experience (20%) | Location (10%)
-"""
 import os
 import json
-from groq import Groq
+from app.core.config import settings
+from app.core.llm import llm_client as client
 from typing import Optional, Dict, Any
+from groq import Groq
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.learning_loop import learning_loop_service
 
@@ -45,11 +42,8 @@ Return exactly this JSON structure:
 
 
 class ScoringService:
-    def _get_groq_client(self) -> Groq:
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise ValueError("GROQ_API_KEY not set in environment")
-        return Groq(api_key=api_key)
+    def _get_groq_client(self) -> Optional[Groq]:
+        return client
 
     async def score_job(
         self,
@@ -70,12 +64,15 @@ class ScoringService:
 
         try:
             client = self._get_groq_client()
+            if not client:
+                raise ValueError("Groq client not initialized. Check GROQ_API_KEY.")
+                
             prompt = SCORING_PROMPT.format(
-                candidate_profile=candidate_profile,
+                candidate_profile=str(candidate_profile),  # ensure string
                 job_title=job_title,
                 company_name=company_name,
                 location=location,
-                description=description[:3000] if description else "N/A",  # Token guard
+                description=str(description)[:3000] if description else "N/A",  # Token guard
                 skill_w=int(weights.skill_match_weight * 100),
                 keyword_w=int(weights.keyword_match_weight * 100),
                 experience_w=int(weights.experience_match_weight * 100),

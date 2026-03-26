@@ -9,6 +9,7 @@ const JobCard = ({ job, onOptimize, onApply, onGrowth }) => {
     salary_extracted,
     site,
     source_url,
+    relevance_score,
     ats_score,
     status
   } = job;
@@ -21,20 +22,33 @@ const JobCard = ({ job, onOptimize, onApply, onGrowth }) => {
     return <Globe size={14} className="text-slate-400" />;
   };
 
+  const score = relevance_score || ats_score;
+  const getScoreColor = (s) => {
+    if (s >= 80) return 'text-emerald-600 bg-emerald-50 border-emerald-100';
+    if (s >= 60) return 'text-amber-600 bg-amber-50 border-amber-100';
+    return 'text-rose-600 bg-rose-50 border-rose-100';
+  };
+
   return (
-    <div className="pro-glass-card group p-6 h-full flex flex-col justify-between">
+    <div className="pro-glass-card group p-6 h-full flex flex-col justify-between relative overflow-hidden">
+      {score > 0 && (
+        <div className={`absolute -top-1 -right-1 flex items-center gap-1.5 rounded-bl-2xl border-l border-b px-4 py-2 text-[10px] font-black tracking-widest uppercase shadow-sm z-10 ${getScoreColor(score)}`}>
+          <div className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+          {score}% Match
+        </div>
+      )}
       <div>
         {/* Header: Company & Action */}
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex justify-between items-start mb-4 pr-12">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-pro-blue font-bold">
               {company_name?.charAt(0) || <Building2 size={20} />}
             </div>
-            <div className="min-w-0">
-              <h3 className="text-slate-900 font-bold truncate group-hover:text-pro-blue transition-colors text-lg" title={job_title}>
+            <div className="flex-1 min-w-0 pr-2">
+              <h3 className="text-slate-900 font-bold group-hover:text-pro-blue transition-colors text-lg line-clamp-2 leading-tight mb-1" title={job_title}>
                 {job_title}
               </h3>
-              <p className="text-slate-500 text-sm font-medium truncate">{company_name}</p>
+              <p className="text-slate-500 text-sm font-medium truncate opacity-80">{company_name}</p>
             </div>
           </div>
           
@@ -51,13 +65,13 @@ const JobCard = ({ job, onOptimize, onApply, onGrowth }) => {
 
         {/* Metadata Grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+          <div className="flex items-center gap-2 bg-slate-50 p-1.5 px-3 rounded-xl border border-slate-100 w-fit">
             <MapPin size={14} className="text-slate-400" />
-            <span className="text-xs text-slate-600 font-medium truncate">{location}</span>
+            <span className="text-xs text-slate-600 font-medium truncate max-w-[120px]">{location}</span>
           </div>
-          <div className="flex items-center gap-2 bg-pro-green/10 p-2.5 rounded-xl border border-pro-green/20">
+          <div className="flex items-center gap-2 bg-pro-green/10 p-1.5 px-3 rounded-xl border border-pro-green/20 w-fit">
             <DollarSign size={14} className="text-pro-green" />
-            <span className="text-xs text-pro-green font-bold truncate">{salary_extracted || 'TBD'}</span>
+            <span className="text-xs text-pro-green font-bold truncate max-w-[120px]">{salary_extracted || 'TBD'}</span>
           </div>
         </div>
 
@@ -89,7 +103,7 @@ const JobCard = ({ job, onOptimize, onApply, onGrowth }) => {
         </button>
         <button 
           onClick={() => onApply?.(job.id)}
-          className="flex-1 py-3.5 rounded-xl bg-pro-blue text-white font-bold text-xs uppercase tracking-widest hover:bg-sky-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-pro-blue/20"
+          className="flex-1 py-3.5 rounded-xl bg-blue-600 text-white font-bold text-xs uppercase tracking-widest hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
         >
           <Send size={14} />
           Deploy

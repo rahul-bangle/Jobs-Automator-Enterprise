@@ -6,7 +6,7 @@ from app.core.config import settings
 
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=True,
+    echo=False,
     future=True,
 )
 
@@ -16,9 +16,11 @@ async_session_maker = sessionmaker(
 
 async def init_db():
     async with engine.begin() as conn:
-        # await conn.run_sync(SQLModel.metadata.drop_all)
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
+
+# Alias — some files may import get_db
+get_db = get_session
