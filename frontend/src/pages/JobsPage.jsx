@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import ScorePill from '../components/ScorePill.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
+import GrowthPanel from '../components/GrowthPanel.jsx';
 import { useAppState } from '../context/useAppState.jsx';
 
 function JobsPage() {
@@ -78,6 +79,12 @@ function JobsPage() {
               <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Source URL</div>
               <p className="mt-2 break-all text-sm font-medium text-blue-600">{selectedJob.sourceUrl || 'Imported from spreadsheet only'}</p>
             </div>
+            {selectedJob.studyGuide && (
+              <div className="pt-6 border-t border-slate-100">
+                <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 mb-4">Growth Strategy</div>
+                <GrowthPanel plan={selectedJob.studyGuide} />
+              </div>
+            )}
           </>
         ) : null}
       </DetailDrawer>

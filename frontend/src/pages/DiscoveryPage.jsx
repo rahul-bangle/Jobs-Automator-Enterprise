@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { Search, MapPin, Sparkles, Loader2 } from 'lucide-react';
+import { Search, MapPin, Sparkles, Loader2, Zap } from 'lucide-react';
 import JobCard from '../components/JobCard';
-import { API_BASE_URL } from '../services/api';
+import DetailDrawer from '../components/DetailDrawer';
+import GrowthPanel from '../components/GrowthPanel';
+import { api } from '../services/api';
 
 export default function DiscoveryPage() {
   const [query, setQuery] = useState('Full Stack Developer');
@@ -11,17 +12,16 @@ export default function DiscoveryPage() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [status, setStatus] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     setLoading(true);
     setStatus(`Searching Hyderabad Tech Hubs for "${query}"...`);
     try {
-      const resp = await axios.post(`${API_BASE_URL}/v2/jobs/discovery`, [location], {
-        params: { query, limit }
-      });
-      setResults(resp.data.jobs || []);
-      setStatus(`Scanning complete. Found ${resp.data.discovered_count} relevant roles in Hyderabad.`);
+      const data = await api.discovery(query, location, limit);
+      setResults(data.jobs || []);
+      setStatus(`Scanning complete. Found ${data.discovered_count} relevant roles in Hyderabad.`);
     } catch (err) {
       console.error(err);
       setStatus('Operational error in Discovery Pipeline. Check backend logs.');
@@ -33,8 +33,8 @@ export default function DiscoveryPage() {
   const handleOptimize = async (jobId) => {
     setStatus(`Optimizing resume for job: ${jobId}...`);
     try {
-      const resp = await axios.post(`${API_BASE_URL}/v2/optimize/${jobId}`);
-      setStatus(`Optimization complete! Score: ${resp.data.score}%`);
+      const data = await api.optimize(jobId);
+      setStatus(`Optimization complete! Score: ${data.score}%`);
     } catch (err) {
       console.error(err);
       setStatus('Optimization failed.');
@@ -44,11 +44,26 @@ export default function DiscoveryPage() {
   const handleApply = async (jobId) => {
     setStatus(`Deploying application for job: ${jobId}...`);
     try {
-      await axios.post(`${API_BASE_URL}/v2/apply/${jobId}`);
+      await api.apply(jobId);
       setStatus(`Deployment successful! Check History for audit logs.`);
     } catch (err) {
       console.error(err);
       setStatus('Deployment failed.');
+    }
+  };
+
+  const handleGrowth = async (jobId) => {
+    setStatus(`Analyzing tech gaps for job: ${jobId}...`);
+    setLoading(true);
+    try {
+      const data = await api.generateGrowthPlan(jobId);
+      setSelectedPlan(data.study_guide);
+      setStatus(`Growth plan generated successfully!`);
+    } catch (err) {
+      console.error(err);
+      setStatus('Growth plan generation failed.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -121,6 +136,7 @@ export default function DiscoveryPage() {
               job={job} 
               onOptimize={handleOptimize}
               onApply={handleApply}
+              onGrowth={handleGrowth}
             />
           ))
         ) : !loading && (

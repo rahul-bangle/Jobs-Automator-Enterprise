@@ -11,7 +11,7 @@
 | 05 | ATS Engine | ✅ | Multi-iteration score optimization |
 | 06 | Autonomous Mastery | ✅ | 4-tier Full Pipeline V2 |
 | 07 | Fresh Start | ✅ | Environment Reset & Pipeline Hardening |
-| 08 | Visual History | 🏃 | Virtualized Application Cockpit |
-| 09 | Enterprise Scaling | 📅 | Multi-user Cloud Support |
+| 10 | Resume Mastery | 📅 | Recursive Self-Healing Optimization Engine |
+| 11 | Deep Scrape | 📅 | Multi-page Scrapling Batch Discovery |
 
 ## 📈 MILESTONE PROGRESS [████████░░] 80%

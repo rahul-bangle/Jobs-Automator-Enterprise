@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import ScorePill from '../components/ScorePill.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
+import GrowthPanel from '../components/GrowthPanel.jsx';
 import { useAppState } from '../context/useAppState.jsx';
 
 function ReviewPage() {
@@ -84,31 +85,7 @@ function ReviewPage() {
             ) : (
               <div className="space-y-4">
                 {studyGuide ? (
-                  <>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                      <div className="text-xs font-bold uppercase text-slate-400">Company Context</div>
-                      <p className="mt-1 text-sm text-slate-600 italic">"{studyGuide.business_context}"</p>
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold uppercase text-slate-400">Skill Gaps (What to Learn)</div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {studyGuide.skill_gaps.map(gap => (
-                          <span key={gap} className="rounded-lg bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700">-{gap}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold uppercase text-slate-400">Research Prompts</div>
-                      <ul className="mt-2 space-y-2">
-                        {studyGuide.research_prompts.map((p, i) => (
-                          <li key={i} className="flex gap-3 rounded-xl border border-slate-100 p-3 text-sm text-slate-600 hover:border-cyan-200 hover:bg-cyan-50/30">
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold">{i+1}</span>
-                            {p}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
+                  <GrowthPanel plan={studyGuide} />
                 ) : (
                   <div className="py-10 text-center text-slate-400">Analyzing job requirements...</div>
                 )}

@@ -88,6 +88,36 @@ async def submit_application(
     
     return outcome
 
+@router.post("/growth/{job_id}")
+async def generate_job_growth_plan(
+    job_id: str,
+    session: AsyncSession = Depends(get_session)
+):
+    """Tier 3.1: Generate Learning Subjects and Suggested Projects based on JD gaps."""
+    logger.info(f"🚀 V2 Growth Route Triggered for Job: {job_id}")
+    job = await session.get(Job, job_id)
+    if not job:
+        logger.warning(f"❌ Job {job_id} not found in database.")
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # 1. Parse JD to JobProfile
+    profile = await discovery_service.parse_job_description(job.source_url)
+    
+    # 2. Get base resume (simplified: fetching first version)
+    # In a real app, this would be the user's primary/master resume json
+    base_resume = {"basics": {"name": "User", "label": "Full Stack Developer"}, "sections": {}} 
+    
+    # 3. Generate Growth Plan
+    growth_data = await ats_engine.generate_growth_plan(profile, base_resume)
+    
+    # 4. Save to Job table
+    job.study_guide = growth_data
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+    
+    return growth_data
+
 @router.get("/history")
 async def get_audit_history(
     session: AsyncSession = Depends(get_session),

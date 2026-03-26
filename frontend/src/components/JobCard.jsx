@@ -1,7 +1,7 @@
 import React from 'react';
-import { MapPin, DollarSign, Building2, ExternalLink, Sparkles, Send, Globe } from 'lucide-react';
+import { MapPin, DollarSign, Building2, ExternalLink, Sparkles, Send, Globe, Zap } from 'lucide-react';
 
-const JobCard = ({ job, onOptimize, onApply }) => {
+const JobCard = ({ job, onOptimize, onApply, onGrowth }) => {
   const {
     job_title,
     company_name,
@@ -95,6 +95,14 @@ const JobCard = ({ job, onOptimize, onApply }) => {
           Deploy
         </button>
       </div>
+
+      <button 
+        onClick={() => onGrowth?.(job.id)}
+        className="w-full mt-3 py-3 rounded-xl border border-dashed border-pro-green/30 bg-pro-green/5 text-pro-green font-bold text-[10px] uppercase tracking-widest hover:bg-pro-green/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+      >
+        <Zap size={12} className="group-hover:animate-pulse" />
+        Unlock Growth Phase (Gap Analysis)
+      </button>
     </div>
   );
 };

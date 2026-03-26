@@ -1,18 +1,28 @@
+# Logs
+*.log
+npm-debug.log*
+
 # Python
-__pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
-venv_new/
+venv*/
 .env
+.venv/
+env/
 
 # Node
-node_modules/
+**/node_modules/
 dist/
+dist-ssr/
 .env.local
+.env.*.local
 
 # Database
 *.db
+!job_automator.db
 
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
