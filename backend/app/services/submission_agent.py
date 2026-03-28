@@ -1,10 +1,12 @@
 import asyncio
+import logging
 from typing import Dict, Optional, Any, List
 import os
 from pydantic import BaseModel
 from playwright.async_api import async_playwright
 from sqlalchemy.ext.asyncio import AsyncSession
-# [Placeholder for BrowserUse - implementing the logic gate foundation]
+
+logger = logging.getLogger("SubmissionAgent")
 
 class SafetyGateResult(BaseModel):
     is_safe: bool
@@ -29,23 +31,23 @@ class SubmissionAgent:
         # 2. Safety Gate
         gate_result = self._check_safety_gate(variant)
         if not gate_result.is_safe:
-            print(f"🛑 SAFETY GATE BLOCKED: {gate_result.violations}")
+            logger.warning(f"🛑 SAFETY GATE BLOCKED: {gate_result.violations}")
             return {"status": "blocked", "reason": gate_result.violations}
         
         # 3. Lazy PDF Render
-        print(f"🖨️ Rendering Final PDF for Variant {variant_id}...")
+        logger.info(f"🖨️ Rendering Final PDF for Variant {variant_id}...")
         # pdf_path = await self._render_pdf(variant.resume_json) # [Placeholder for real render]
         pdf_path = f"./storage/resumes/variant_{variant_id}.pdf"
         
         # 4. Autonomous Apply (Playwright Navigation Proof of Concept)
-        print(f"🤖 Launching Autonomous Submission Agent for {job_url}...")
+        logger.info(f"🤖 Launching Autonomous Submission Agent for {job_url}...")
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
             try:
                 await page.goto(job_url, timeout=30000)
                 title = await page.title()
-                print(f"✅ Navigated to: {title}")
+                logger.info(f"✅ Navigated to: {title}")
                 # [Future: BrowserUse Agent logic would interact here]
                 await asyncio.sleep(2) 
                 await browser.close()

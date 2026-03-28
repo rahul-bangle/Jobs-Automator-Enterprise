@@ -136,32 +136,58 @@ class ATSEngineV2:
         Tier 3.1: Growth Phase — LLM Gap Analysis & Project Suggestion
         """
         client = self._get_groq_client()
-        prompt = f"""You are a career growth advisor and technical architect. Analyze the provided Job Description Profile and Candidate Resume. 
-        Identify the core 'must-have' technologies and skills for the role. Then, identify the gaps in the candidate's resume relative to this job.
-        
-        Suggest exactly 3 specific 'Learnings' (topics/subjects to study) and 2 'Suggested Projects' the candidate should build to prove proficiency and bridge these gaps.
-        Each project must have a title, a short description, and a list of technologies to use.
-        
-        JOB PROFILE:
-        Role: {job_profile.role}
-        Skills: {", ".join(job_profile.skills_required)}
-        Tools: {", ".join(job_profile.tools)}
-        Keywords: {", ".join(job_profile.keywords)}
-        
-        CANDIDATE RESUME:
-        {json.dumps(resume_json)}
-        
-        Return ONLY valid JSON in this format:
-        {{
-          "learnings": ["Topic 1", "Topic 2", "Topic 3"],
-          "projects": [
-            {{
-              "title": "Project Alpha",
-              "description": "Build a...",
-              "tech_stack": ["Tech A", "Tech B"]
-            }}
-          ]
-        }}"""
+        prompt = f"""You are a PM career coach for a fresher transitioning from Sales to Product Management.
+
+CANDIDATE RESUME:
+{json.dumps(resume_json)}
+
+JOB DESCRIPTION PROFILE:
+Role: {job_profile.role}
+Required Skills: {", ".join(job_profile.skills_required)}
+Tools: {", ".join(job_profile.tools)}
+Keywords: {", ".join(job_profile.keywords)}
+
+YOUR TASK:
+Step 1 - Find gaps:
+  Compare resume vs JD. List skills/tools candidate is missing.
+  Separate into:
+  - Must-have gaps (blocking this application)
+  - Good-to-have gaps (nice to learn)
+
+Step 2 - Suggest projects (max 3):
+  Each project must:
+  - Cover 2-3 missing skills from JD
+  - Be completable in 1-2 weeks
+  - Have a real deliverable (Notion doc, Figma wireframe, case study PDF)
+  - Be relevant to candidate's sales/CS background
+
+Step 3 - Quick wins (max 3):
+  Things candidate can add to resume in 1-2 days
+  Example: "Take free Jira course on Atlassian — add to skills"
+
+Return ONLY this JSON:
+{{
+  "missing_skills": [
+    {{
+      "skill": "SQL",
+      "importance": "must-have",
+      "why": "data analysis mentioned 3x in JD"
+    }}
+  ],
+  "suggested_projects": [
+    {{
+      "title": "Project name",
+      "skills_covered": ["skill1", "skill2"],
+      "timeline_weeks": 2,
+      "deliverable": "what to build",
+      "why_fits_your_background": "connects to your sales experience because..."
+    }}
+  ],
+  "quick_wins": ["Action 1", "Action 2"],
+  "ready_to_apply_in_weeks": 2
+}}
+
+No explanation. No markdown. Only JSON."""
 
         try:
             chat_completion = client.chat.completions.create(

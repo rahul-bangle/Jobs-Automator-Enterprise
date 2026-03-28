@@ -107,17 +107,23 @@ async def optimize_application(
         job.description = result["raw_text"]
         session.add(job)
     
-    # 2. Get base resume (simplified: fetching first user resume for now)
-    # [Logic to fetch actual user base resume]
-    base_resume = {"basics": {"name": "User"}} 
+    # 2. Get base resume from MasterResume
+    master_resume = await session.get(MasterResume, 1)
+    if not master_resume:
+        raise HTTPException(
+            status_code=400, 
+            detail="Please import your resume first"
+        )
+    base_resume = master_resume.parsed_json
     
-    # 3. Recursive Loop
+    # 3. Recursive Loop: Tailor -> Score -> Heal
     result = await tailor_service.optimize_resume(base_resume, profile)
     
-    # 4. Save best variant
+    # 4. Save best variant with content
     variant = ResumeVariant(
         job_id=job.id,
         filename=f"version_{result['best_score']}.json",
+        content=json.dumps(result["final_resume"]),
         ats_score=result['best_score'],
         status="PASS" if result['best_score'] >= 75 else "FAIL",
         version=len(result['version_history'])
@@ -129,7 +135,8 @@ async def optimize_application(
     return {
         "variant_id": variant.id,
         "score": variant.ats_score,
-        "history": [h["score"] for h in result["version_history"]]
+        "history": [h["score"] for h in result["version_history"]],
+        "tailored_resume": result["final_resume"]
     }
 
 @router.post("/apply/{job_id}")

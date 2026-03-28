@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from typing import List, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.pipeline_v2 import JobProfile
@@ -7,6 +8,8 @@ from app.services.ats_engine_v2 import ats_engine, ScoreResult
 from app.models.base import ResumeVariant, Job
 from app.core.config import settings
 from app.core.llm import llm_client as groq_client
+
+logger = logging.getLogger("TailorEngineV2")
 
 class TailorEngineV2:
     """
@@ -29,21 +32,21 @@ class TailorEngineV2:
         """
         Recursive Loop: Tailor -> Score -> Heal -> Repeat
         """
-        print(f"Starting Recursive Tailoring for {job_profile.role}...")
+        logger.info(f"Starting Recursive Tailoring for {job_profile.role}...")
         
         current_resume = base_resume_json
         history = []
         
         for v in range(1, max_iterations + 1):
             version_id = f"v{v}"
-            print(f"VERSION {version_id} -- Optimizing...")
+            logger.info(f"VERSION {version_id} -- Optimizing...")
             
             # Step 1: Tailor (Groq Call)
             current_resume = await self._tailor_logic(current_resume, job_profile, history)
             
             # Step 2: Score (ATS Engine)
             score_result = await ats_engine.calculate_hybrid_score(job_profile, current_resume)
-            print(f"Score: {score_result.total_score}% | Overfitted: {score_result.is_overfitted}")
+            logger.info(f"Score: {score_result.total_score}% | Overfitted: {score_result.is_overfitted}")
             
             # Step 3: Logistics (Version Tracking)
             history.append({
@@ -55,10 +58,10 @@ class TailorEngineV2:
             
             # Step 4: Gatekeeper (75+ threshold)
             if score_result.total_score >= 75 and not score_result.is_overfitted:
-                print(f"PASS! Threshold met in Version {version_id}.")
+                logger.info(f"PASS! Threshold met in Version {version_id}.")
                 break
             else:
-                print(f"FAIL. Feedback: {score_result.feedback}")
+                logger.info(f"FAIL. Feedback: {score_result.feedback}")
         
         return {
             "final_resume": current_resume,
@@ -75,24 +78,42 @@ class TailorEngineV2:
             last = history[-1]
             feedback_context = f"PREVIOUS FEEDBACK: {', '.join(last['feedback'])}"
 
-        prompt = f"""You are an elite Resume Architect. Tailor the provideed Reactive-Resume JSON to perfectly match the Job Profile.
-        
-        JOB ROLE: {profile.role}
-        KEYWORDS: {', '.join(profile.keywords)}
-        TOOLS: {', '.join(profile.tools)}
-        
-        {feedback_context}
-        
-        RESUME JSON:
-        {json.dumps(resume)}
-        
-        INSTRUCTIONS:
-        1. Update 'basics.summary' to highlight relevant experience.
-        2. Adjust 'sections.experience' descriptions to use the provided keywords.
-        3. Match the skills list to the 'TOOLS' and 'KEYWORDS' provided.
-        4. Maintain strictly valid JSON format.
-        
-        Return ONLY the updated JSON object."""
+        prompt = f"""You are an expert PM resume writer specializing in career transitions.
+
+CANDIDATE BACKGROUND: Sales & Customer Success → Associate Product Manager
+
+JOB ROLE: {profile.role}
+REQUIRED SKILLS: {', '.join(profile.skills_required)}
+TOOLS: {', '.join(profile.tools)}
+KEYWORDS FOR ATS: {', '.join(profile.keywords)}
+
+BASE RESUME JSON:
+{json.dumps(resume)}
+
+PREVIOUS FEEDBACK (if any):
+{feedback_context}
+
+YOUR TASK:
+Step 1 - Extract from JD:
+  - Must-have skills list
+  - ATS keywords (exact phrases from JD)
+  - Tools required
+  
+Step 2 - Map candidate strengths:
+  - Sales metrics → Product impact framing
+  - Customer complaints handled → User research experience  
+  - Team leadership → Stakeholder management
+  - CRM usage → Data-driven decision making
+
+Step 3 - Rewrite resume:
+  - basics.summary: 3 lines, mention role + top 2 JD keywords + transition story
+  - Each experience bullet: rewrite using STAR format, inject 1-2 JD keywords naturally
+  - Skills section: add missing JD tools candidate has exposure to
+  - Do NOT stuff keywords — max 2 per bullet
+  - Do NOT lie — only reframe real experience
+
+Step 4 - Return ONLY valid JSON, same structure as input resume.
+No explanation. No markdown. Just JSON."""
 
         try:
             loop = asyncio.get_event_loop()
@@ -107,7 +128,7 @@ class TailorEngineV2:
             )
             return json.loads(completion.choices[0].message.content)
         except Exception as e:
-            print(f"Tailoring LLM Error: {e}")
+            logger.error(f"Tailoring LLM Error: {e}")
             return resume
 
     async def legacy_optimize_resume(

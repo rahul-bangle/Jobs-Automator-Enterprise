@@ -362,7 +362,7 @@ class DiscoveryEngine:
         self,
         query: str,
         locations: List[str],
-        limit: int = 50,
+        limit: int = 200,
         filters: Optional[dict] = None,
         session: Optional[AsyncSession] = None,
     ):
