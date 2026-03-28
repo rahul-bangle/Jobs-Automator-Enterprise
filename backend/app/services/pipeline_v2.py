@@ -519,18 +519,21 @@ class DiscoveryEngine:
                 response_format={"type": "json_object"}
             )
             data = json.loads(completion.choices[0].message.content)
-            return JobProfile(**data)
+            return {"raw_text": truncated_content, "profile": JobProfile(**data)}
         except Exception as e:
             logger.error(f"JD Parsing failed: {str(e)}")
             # Fallback to generic profile
-            return JobProfile(
-                role="Unknown Role",
-                skills_required=[],
-                tools=[],
-                experience_level="Unknown",
-                keywords=[],
-                soft_skills=[]
-            )
+            return {
+                "raw_text": truncated_content,
+                "profile": JobProfile(
+                    role="Unknown Role",
+                    skills_required=[],
+                    tools=[],
+                    experience_level="Unknown",
+                    keywords=[],
+                    soft_skills=[]
+                )
+            }
 
 
 # singleton for use in pipeline

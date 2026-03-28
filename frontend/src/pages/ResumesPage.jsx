@@ -55,6 +55,7 @@ function ResumesPage() {
       const { data } = await axios.get(`${API_BASE}/resumes/master`);
       if (data?.status === 'empty' || !data?.id) {
         setMasterResume(null);
+        setErrorText(''); // Clear any generic connection errors if API is healthy but empty
         return;
       }
       setMasterResume(data);

@@ -1,6 +1,7 @@
 import logging
+import json
 from typing import Dict, Any
-from app.services.scoring import scoring_service # Using the same LLM service
+from app.core.llm import async_llm_client as groq_client
 
 logger = logging.getLogger("ResumeParser")
 
@@ -24,20 +25,17 @@ class ResumeParser:
         """
         
         try:
-            # Reusing the scoring service's shared client
-            from app.services.scoring import client as groq_client
-            
             if not groq_client:
                 logger.error("Groq client not initialized. Check GROQ_API_KEY.")
                 return {"basics": {"name": "Error: Missing API Key"}, "sections": {"work": {"items": []}}}
 
-            completion = groq_client.chat.completions.create(
+            # Tier 3: Asynchronous LLM Extraction (prevents blocking during 10-20s parsing)
+            completion = await groq_client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
                 model="llama-3.3-70b-versatile",
                 response_format={"type": "json_object"}
             )
             
-            import json
             content = completion.choices[0].message.content
             return json.loads(content)
             

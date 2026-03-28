@@ -101,7 +101,11 @@ async def optimize_application(
     if not job: raise HTTPException(status_code=404, detail="Job not found")
     
     # 1. Parse JD if not already structured
-    profile = await discovery_service.parse_job_description(job.source_url)
+    result = await discovery_service.parse_job_description(job.source_url)
+    profile = result["profile"]
+    if not job.description:
+        job.description = result["raw_text"]
+        session.add(job)
     
     # 2. Get base resume (simplified: fetching first user resume for now)
     # [Logic to fetch actual user base resume]
@@ -155,7 +159,10 @@ async def generate_job_growth_plan(
         raise HTTPException(status_code=404, detail="Job not found")
     
     # 1. Parse JD to JobProfile
-    profile = await discovery_service.parse_job_description(job.source_url)
+    result = await discovery_service.parse_job_description(job.source_url)
+    profile = result["profile"]
+    if not job.description:
+        job.description = result["raw_text"]
     
     # 2. Get base resume (simplified: fetching first version)
     # In a real app, this would be the user's primary/master resume json
@@ -262,3 +269,16 @@ async def import_resume(
         "uploaded_at": master_resume.updated_at.isoformat(),
         "resume": master_resume.parsed_json
     }
+@router.post("/jobs/{job_id}/sync")
+async def sync_job_description(job_id: str, session: AsyncSession = Depends(get_session)):
+    """Background sync for missing job descriptions."""
+    job = await session.get(Job, job_id)
+    if not job: raise HTTPException(status_code=404, detail="Job not found")
+
+    result = await discovery_service.parse_job_description(job.source_url)
+    job.description = result["raw_text"]
+    
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+    return job
