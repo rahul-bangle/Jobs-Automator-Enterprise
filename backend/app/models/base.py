@@ -16,8 +16,13 @@ class Job(SQLModel, table=True):
     site: Optional[str] = None
     salary_extracted: Optional[str] = None
     relevance_score: int = 0
+    trust_score: int = 0
+    ats_type: str = "unknown"
     queue_status: str = "review"
+    fit_summary: Optional[str] = None
     discovery_date: datetime = Field(default_factory=datetime.utcnow)
+    score_breakdown: Optional[dict] = Field(default={}, sa_column=Column(JSON))
+    risk_flags: Optional[List[str]] = Field(default=[], sa_column=Column(JSON))
     study_guide: Optional[dict] = Field(default={}, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -59,6 +64,11 @@ class JobApplication(SQLModel, table=True):
     job_id: str = Field(foreign_key="jobs.id")
     resume_variant_id: Optional[int] = Field(default=None, foreign_key="resume_variants.id")
     approval_status: str = "ready"
+    skill_score: int = 0
+    experience_score: int = 0
+    keyword_score: int = 0
+    overall_fit_score: int = 0
+    fit_analysis: Optional[str] = None
     warnings: List[str] = Field(default=[], sa_column=Column(JSON))
     fit_reasons: List[str] = Field(default=[], sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
