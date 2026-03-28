@@ -5,7 +5,7 @@ from app.core.llm import llm_client as client
 from typing import Optional, Dict, Any
 from groq import Groq
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.learning_loop import learning_loop_service
+
 
 # Models
 REASONING_MODEL = "llama-3.3-70b-versatile"
@@ -57,8 +57,13 @@ class ScoringService:
     ) -> Dict[str, Any]:
         """Call Groq to score a job with white-box breakdown, incorporating learned weights."""
         
-        # 1. Get dynamically tuned weights from the Learning Loop
-        weights = await learning_loop_service.get_current_weights(session)
+        # 1. Use default weights for scoring
+        DEFAULT_WEIGHTS = {
+            "skill_match": 0.5,
+            "keyword_match": 0.2,
+            "experience_match": 0.2,
+            "location_match": 0.1
+        }
         
         model = SPEED_MODEL if use_speed_model else REASONING_MODEL
 
@@ -73,10 +78,10 @@ class ScoringService:
                 company_name=company_name,
                 location=location,
                 description=str(description)[:3000] if description else "N/A",  # Token guard
-                skill_w=int(weights.skill_match_weight * 100),
-                keyword_w=int(weights.keyword_match_weight * 100),
-                experience_w=int(weights.experience_match_weight * 100),
-                location_w=int(weights.location_match_weight * 100)
+                skill_w=int(DEFAULT_WEIGHTS["skill_match"] * 100),
+                keyword_w=int(DEFAULT_WEIGHTS["keyword_match"] * 100),
+                experience_w=int(DEFAULT_WEIGHTS["experience_match"] * 100),
+                location_w=int(DEFAULT_WEIGHTS["location_match"] * 100)
             )
 
             chat_completion = client.chat.completions.create(
@@ -98,13 +103,13 @@ class ScoringService:
             raw = chat_completion.choices[0].message.content
             data = json.loads(raw)
             
-            # 2. Calculate overall weighted score based on learned weights
+            # 2. Calculate overall weighted score based on default weights
             breakdown = data.get("score_breakdown", {})
             overall_score = (
-                breakdown.get("skill_match", 0) * weights.skill_match_weight +
-                breakdown.get("keyword_match", 0) * weights.keyword_match_weight +
-                breakdown.get("experience_match", 0) * weights.experience_match_weight +
-                breakdown.get("location_match", 0) * weights.location_match_weight
+                breakdown.get("skill_match", 0) * DEFAULT_WEIGHTS["skill_match"] +
+                breakdown.get("keyword_match", 0) * DEFAULT_WEIGHTS["keyword_match"] +
+                breakdown.get("experience_match", 0) * DEFAULT_WEIGHTS["experience_match"] +
+                breakdown.get("location_match", 0) * DEFAULT_WEIGHTS["location_match"]
             )
             
             data["overall_score"] = float(overall_score / 100.0) # Scale back to 0-1

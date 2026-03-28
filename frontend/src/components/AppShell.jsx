@@ -3,15 +3,11 @@ import { useAppState } from '../context/useAppState.jsx';
 
 const navigation = [
   { to: '/dashboard', label: 'Dashboard', hint: 'Ops overview', icon: '◫' },
-  { to: '/campaign', label: 'Campaign', hint: 'Role targeting', icon: '◎' },
   { to: '/import', label: 'Bulk Import', hint: 'CSV/XLSX + URLs', icon: '↥' },
   { to: '/jobs', label: 'Jobs', hint: 'Inventory', icon: '▣' },
   { to: '/review', label: 'Review Queue', hint: 'Manual triage', icon: '◇' },
-  { to: '/applications', label: 'Applications', hint: 'Approval queue', icon: '→' },
   { to: '/resumes', label: 'Profiling', hint: 'Master Profile', icon: '✦' },
-  { to: '/submissions', label: 'Submissions', hint: 'History', icon: '◌' },
   { to: '/discovery', label: 'Discovery', hint: 'Auto Job Hunt', icon: '🔍' },
-  { to: '/archive', label: 'Command Archive', hint: 'Autonomous Log', icon: '🛰️' },
   { to: '/settings', label: 'Settings', hint: 'Backend handoff', icon: '⚙' },
 ];
 

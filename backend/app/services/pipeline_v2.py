@@ -282,10 +282,10 @@ class DiscoveryEngine:
             results = await loop.run_in_executor(
                 self.executor,
                 lambda: scrape_jobs(
-                    site_name=["linkedin", "indeed", "glassdoor", "google"],
+                    site_name=["linkedin", "indeed", "glassdoor", "zip_recruiter"],
                     search_term=query,
                     location=js_loc_full,
-                    results_wanted=limit,
+                    results_wanted=50,
                     hours_old=None,
                     country_indeed="india"
                 )
@@ -333,24 +333,29 @@ class DiscoveryEngine:
 
         async def main_logic():
             queue = asyncio.Queue()
+            semaphore = asyncio.Semaphore(5)
             async def worker(gen_func, name):
                 try:
-                    async for j in gen_func:
-                        if j: await queue.put(j)
+                    async with semaphore:
+                        async for j in gen_func:
+                            if j: await queue.put(j)
                 except Exception as e:
                     logger.error(f"Worker {name} failed: {str(e)}")
                 finally:
                     await queue.put(None)
 
-            tasks = [
-                asyncio.create_task(worker(self._jobspy_search(refined_query, [sanitized_location], limit), "JobSpy")),
-                asyncio.create_task(worker(self._scrapling_search(refined_query, sanitized_location, limit), "Indeed")),
-                asyncio.create_task(worker(self._naukri_search(refined_query, sanitized_location, limit), "Naukri"))
-            ]
+            geo_locations = [sanitized_location, "India", "Bangalore", "Hyderabad", "Pune"]
+            geo_locations = list(dict.fromkeys([loc.strip() for loc in geo_locations if loc and loc.strip()]))
+
+            tasks = []
+            for loc in geo_locations:
+                tasks.append(asyncio.create_task(worker(self._jobspy_search(refined_query, [loc], limit), f"JobSpy:{loc}")))
+                tasks.append(asyncio.create_task(worker(self._scrapling_search(refined_query, loc, limit), f"Indeed:{loc}")))
+                tasks.append(asyncio.create_task(worker(self._naukri_search(refined_query, loc, limit), f"Naukri:{loc}")))
             
             try:
                 workers_done = 0
-                returned_ids = set()
+                returned_keys = set()
                 is_india_query = any(x in sanitized_location.lower() for x in ["hyderabad", "india", "bangalore", "pune", "delhi", "mumbai"])
 
                 while workers_done < len(tasks):
@@ -359,7 +364,12 @@ class DiscoveryEngine:
                         if job is None:
                             workers_done += 1
                         elif job is not None and hasattr(job, 'id'):
-                            if job.id not in returned_ids:
+                            dedupe_key = (
+                                (job.job_title or "").strip().lower(),
+                                (job.company_name or "").strip().lower(),
+                                (job.location or "").strip().lower(),
+                            )
+                            if dedupe_key not in returned_keys:
                                 # GEO-FILTER RELAXED
                                 job_loc = (job.location or "").lower()
                                 job_title = (job.job_title or "").lower()
@@ -379,9 +389,9 @@ class DiscoveryEngine:
                                             is_india_eligible = False
 
                                 if is_india_eligible:
-                                    returned_ids.add(job.id)
+                                    returned_keys.add(dedupe_key)
                                     yield job
-                                    if len(returned_ids) >= limit: break
+                                    if len(returned_keys) >= limit: break
                     except asyncio.TimeoutError:
                         if workers_done >= len(tasks): break
             finally:

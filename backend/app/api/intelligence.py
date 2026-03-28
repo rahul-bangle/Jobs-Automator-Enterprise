@@ -4,7 +4,6 @@ from sqlmodel import select
 from app.core.db import get_session
 from app.models.base import Job, Campaign
 from app.services.scoring import scoring_service
-from app.services.market_analysis import analyze_market
 from app.services.ats_engine_v2 import ats_engine
 from app.services.tailor_engine_v2 import tailor_service
 
@@ -74,25 +73,7 @@ async def batch_score_jobs(
     # ... logic ...
     return {"message": f"Planned for {len(jobs)} jobs"}
 
-@router.post("/market-analysis")
-async def run_market_analysis(session: AsyncSession = Depends(get_session)):
-    """Run Groq/Llama market analysis on all accepted/review jobs."""
-    result = await session.execute(
-        select(Job).where(Job.queue_status.in_(["accepted", "review"]))
-    )
-    jobs = result.scalars().all()
 
-    jobs_data = [
-        {
-            "job_title": j.job_title,
-            "company_name": j.company_name,
-            "description": j.description or ""
-        }
-        for j in jobs
-    ]
-
-    analysis = await analyze_market(jobs_data)
-    return analysis
 
 @router.post("/optimize-resume/{job_id}")
 async def optimize_resume_for_job(

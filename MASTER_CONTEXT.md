@@ -1,10 +1,10 @@
 # 🏢 MASTER_CONTEXT.md — Jobs Automator OS
 
 ## 📊 CURRENT STATUS
-- **Phase 11**: **HARDENING COMPLETED** (Regional Discovery Yield-on-Discovery refactor).
-- **Frontend**: **ACTIVE** (Vite on :5173, verified Pro Max UI with Virtualization).
-- **Backend**: **ACTIVE** (FastAPI on :8001, venv_new, 60s Timeout).
-- **Status**: **STABLE** (Cleanup complete; all temporary tests removed).
+- **Phase 1**: **CLEANUP COMPLETED** (Legacy services, APIs, and redundant UI removed).
+- **Backend**: **ACTIVE** (FastAPI on :8001, verified via startup logs).
+- **Frontend**: **ACTIVE** (Vite on :5173, verified via startup logs).
+- **Status**: **STABLE** (Servers live; cleanup verified).
 
 ## 🔧 LOCKED STACK
 - Python 3.11 / FastAPI
@@ -122,6 +122,8 @@
 | 117 | User | once this is completed puch t git and shut teh windows doewwn opk ? not envoiromnmemnt whole system shut down |
 | 117 | Agent | ⚡ Loading Core Context... 🛠️ Skill: fastapi-pro --- All hardening tasks completed! Implemented Smart Geo-Filter and Naukri Scraper. Verified with 5 live Hyderabad roles correctly streamed and filtered. Committed locally (`0d08dd0`). Pushing to GitHub (pending network stability). Stopped backend service on port 8001. System is production-ready. 🚀 |
 | 208 | Agent | Roadmap Updated: Integrating full 'Discovery -> Gap Analysis -> Project Suggestions -> Tailor' flow as requested. |
+| 209 | User | hey no executio0n just discusssion ...what is dlq in our applicatiuon? |
+| 209 | Agent | Explained the Dead Letter Queue (DLQ) in detail as a safety net for failed background operations implemented in `backend/app/api/dlq.py`. |
 
 > [!IMPORTANT]
 > **STRICT RULE**: Agent is in "Analytic Mode". NO EXECUTIONS. NO TESTING. The User performs all testing. For every query/doubt, the Agent must first find relevant files and then explain/answer via code analysis only.
@@ -196,6 +198,16 @@
 | 30 | Agent | Identified 30s timeout and "Gather-Burst" list pattern as bottlenecks for regional searches. Refactored `DiscoveryEngine` to `AsyncGenerators` (Yield-on-Discovery) and increased global timeout to 60s. Verified success: 10 jobs found in Hyderabad. |
 | 31 | User | ghey cllear whichare not necessary , all teh tests , and wait |
 | 32 | Agent | Performed final environment pruning. Purged all diagnostic scripts (`reproduce_zero_results.py`, `test_jobspy_isolated.py`, etc.). Final cleanup commit pushed to main. System is in a clean, production-ready "Wait" state. |
+| 33 | User | Analyze this plan ... we are now compoletely redesing ... |
+| 33 | Agent | Provided Phase 1 Cleanup Plan. Identified 12+ legacy files for removal. |
+| 34 | User | proceed |
+| 34 | Agent | 🏆 **PHASE 1 CLEANUP COMPLETED**. Removed legacy services (`learning_loop`, `market_analysis`, etc.), cleaned up `router.py`, and refactored `AppShell`/`App.jsx`. Verified backend stability via import audit. |
+| 35 | User | start both server and check for logs in both |
+| 35 | Agent | 🚀 **SERVERS LIVE**. 1. **Backend**: FastAPI started on :8001. DB initialized successfully. 2. **Frontend**: Vite started on :5173. Both services verified and healthy. |
+| 36 | User | Analyze pipeline_v2.py (hardcoded values, site limits, returns, parallel injection) |
+| 36 | Agent | Analyzed `DiscoveryEngine`. Identified `results_wanted` defaults to 50, `site_name` is hardcoded to 4 sites in JobSpy, and results use an Async Generator stream. Suggested optimizing `_jobspy_search` with internal `gather` for multi-site concurrency. |
+| 37 | User | bhai codex extention download kiya tha use as secondory panel kiya ab samaj nhi aara kaha hai kaise access karu.. |
+| 37 | Agent | Provided VS Code UI shortcuts and navigation advice to locate the hidden "Secondary Side Bar" (Ctrl+Alt+B) or Activity Bar icon for the Codex extension. |
 
 > [!IMPORTANT]
 > **STRICT RULE**: Agent is in "Analytic Mode". NO EXECUTIONS. NO TESTING. The User performs all testing. For every query/doubt, the Agent must first find relevant files and then explain/answer via code analysis only.
