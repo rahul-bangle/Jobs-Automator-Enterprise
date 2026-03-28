@@ -2,42 +2,61 @@
 @import "tailwindcss";
 
 :root {
-  font-family: "Fira Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: "Inter", "Fira Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   
-  /* Core Colors (Clean Light Theme) */
-  --primary: #3B82F6;
-  --primary-glow: rgba(59, 130, 246, 0.1);
-  --secondary: #64748B;
-  --accent: #2563EB;
-  --bg-deep: #F8FAFC;
-  --bg-card: rgba(255, 255, 255, 0.8);
+  /* Precision Architect: Tonal Depth over Structural Lines */
+  --primary: #0058BE;
+  --primary-container: #2170E4;
+  --on-primary: #FFFFFF;
   
-  /* Brand Constants */
-  --pro-blue: #3B82F6;
-  --pro-green: #10B981;
+  --secondary: #505F76;
+  --on-secondary: #FFFFFF;
+  
+  --tertiary: #924700;
+  --tertiary-container: #B75B00;
+  
+  --background: #F7F9FB;
+  --on-background: #191C1E;
+  
+  /* Tonal Nesting Layers */
+  --surface: #F7F9FB;
+  --surface-container-low: #F2F4F6;
+  --surface-container-lowest: #FFFFFF;
+  --surface-container-high: #ECEEF0;
+  --surface-container-highest: #E0E3E5;
+  
+  --outline: #727785;
+  --outline-variant: rgba(194, 198, 214, 0.15); /* The Ghost Border */
 
-  /* Text */
-  --text-main: #0F172A;
-  --text-dim: #64748B;
-  --text-accent: #2563EB;
+  /* Glassmorphism: The "Editorial High-Fidelity" configuration */
+  --glass-blur: 20px;
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-shadow: 0px 20px 40px rgba(0, 88, 190, 0.06);
+}
 
-  /* Glassmorphism Configuration (Light) */
-  --glass-blur: 12px;
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(226, 232, 240, 0.8);
+/* Precision Architect Utility Classes */
+.no-line-card {
+  background: var(--surface-container-lowest);
+  border: none;
+  @apply rounded-3xl transition-all duration-500 ease-out;
+}
+
+.tonal-stack {
+  background: var(--surface-container-low);
+  @apply p-1 rounded-3xl;
 }
 
 .pro-glass-card {
   backdrop-filter: blur(var(--glass-blur));
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 4px 24px -1px rgba(15, 23, 42, 0.05);
-  @apply rounded-3xl transition-all duration-300;
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--glass-shadow);
+  @apply rounded-3xl transition-all duration-500 ease-out;
 }
 
 .pro-glass-card:hover {
-  @apply border-blue-200 bg-white;
-  box-shadow: 0 20px 40px -4px rgba(59, 130, 246, 0.08);
+  background: var(--surface-container-lowest);
+  box-shadow: 0 30px 60px rgba(0, 88, 190, 0.1);
   transform: translateY(-2px);
 }
 

@@ -33,7 +33,7 @@ class DiscoveryRequest(BaseModel):
 async def run_discovery(
     query: str,
     payload: DiscoveryRequest,
-    limit: int = 10,
+    limit: int = 50,
     session: AsyncSession = Depends(get_session)
 ):
     """Tier 1: Streamed Discovery across LinkedIn, Indeed, Glassdoor."""

@@ -155,24 +155,23 @@ class DiscoveryEngine:
             tag.decompose()
         return soup.get_text(separator=' ', strip=True)
 
-    async def _scrapling_search(self, query: str, location: str, limit: int) -> List[Job]:
+    async def _scrapling_search(self, query: str, location: str, limit: int):
         """
         Deep-scrape fallback using Scrapling (Targeting Indeed).
+        Now an async generator for real-time yielding.
         """
         if not SCRAPLING_AVAILABLE:
-            return []
+            return
 
-        # Domain customization for India
         is_india = any(x in location.lower() for x in ["india", "hyderabad", "bangalore", "pune", "delhi", "mumbai"])
         base_domain = "in.indeed.com" if is_india else "www.indeed.com"
         
         logger.info(f"Starting Scrapling Indeed ({base_domain}) search for: {query} in {location}")
-        scraped_jobs = []
         
+        found_count = 0
         try:
             async with AsyncStealthySession(headless=True) as session:
-                # Limit to 1-2 pages for speed in parallel mode
-                max_pages = 2 
+                max_pages = 5 
                 for p_idx in range(max_pages):
                     start_val = p_idx * 10
                     url = f"https://{base_domain}/jobs?q={query.replace(' ', '+')}&l={location.replace(' ', '+')}&start={start_val}"
@@ -191,90 +190,68 @@ class DiscoveryEngine:
                                        card.css('[data-testid="company-name"]::text').get() or "").strip()
                             loc = (card.css('.companyLocation::text').get() or 
                                    card.css('[data-testid="text-location"]::text').get() or location).strip()
-                            link_raw = (card.css('a.jcs-JobTitle::attr(href)').get() or 
-                                        card.css('a::attr(href)').get())
+                            link_raw = (card.css('a.jcs-JobTitle::attr(href)').get() or card.css('a::attr(href)').get())
                             
                             if link_raw:
                                 link = f"https://{base_domain}{link_raw}" if link_raw.startswith('/') else link_raw
-                            else:
-                                continue
-
-                            # Salary Extraction (Wave 2 - Data Quality)
-                            salary = (card.css('.salary-snippet-container span::text').get() or 
-                                      card.css('.metadata.salary-snippet-container::text').get() or 
-                                      card.css('[data-testid="attribute_snippet_testid"]::text').get() or "").strip()
-
-                            if title and company:
                                 job_id = Job.generate_id(company, title, loc)
                                 logger.info(f"   [Indeed] Found: {title} @ {company}")
-                                scraped_jobs.append(Job(
+                                
+                                found_count += 1
+                                yield Job(
                                     id=job_id,
                                     company_name=company,
                                     job_title=title,
                                     source_url=link,
                                     location=loc,
-                                    salary_extracted=salary,
                                     site="Indeed (Scrapling)",
                                     discovery_date=datetime.utcnow(),
                                     queue_status="review"
-                                ))
-                        except Exception as row_err:
-                            logger.debug(f"Row skip: {str(row_err)}")
-                            continue
+                                )
+                                if found_count >= limit: break
+                        except: continue
                     
-                    if len(scraped_jobs) >= limit:
-                        break
-                    # FIX 5: Random delay for scraper stealth
+                    if found_count >= limit: break
                     await asyncio.sleep(random.uniform(0.5, 1.5))
                     
-            logger.info(f"Scrapling discovered {len(scraped_jobs)} results.")
-        except NotImplementedError:
-            logger.warning("Scrapling/Patchright subprocess not supported on this Windows environment. Skipping.")
-            return []
+            logger.info(f"Scrapling Indeed discovered {found_count} results.")
         except Exception as e:
             logger.error(f"Scrapling search failed: {str(e)}")
-            
-        return scraped_jobs[:limit]
 
-    async def _naukri_search(self, query: str, location: str, limit: int) -> List[Job]:
+    async def _naukri_search(self, query: str, location: str, limit: int):
         """
-        Naukri.com scraper focused on Indian market.
-        Uses Scrapling for stealth and high-fidelity extraction.
+        Naukri.com scraper for Indian market. Async generator.
         """
         if not SCRAPLING_AVAILABLE:
-            return []
+            return
 
         logger.info(f"Starting Scrapling Naukri search for: {query} in {location}")
-        scraped_jobs = []
-        
-        # Naukri's URL structure for search
-        # https://www.naukri.com/associate-product-manager-jobs-in-hyderabad
         clean_query = query.lower().replace(" ", "-")
         clean_loc = location.lower().split(',')[0].strip().replace(" ", "-")
         url = f"https://www.naukri.com/{clean_query}-jobs-in-{clean_loc}"
         
+        found_count = 0
         try:
             async with AsyncStealthySession(headless=True) as session:
                 page = await session.fetch(url)
-                # Naukri uses unique selectors
                 job_tuples = page.css('.srp-jobtuple') or page.css('.cust-job-tuple')
                 
                 if not job_tuples:
-                    logger.warning(f"Naukri.com: 0 results found at {url}. (DOM changed or Blocking active).")
-                    return []
+                    logger.warning(f"Naukri.com: 0 results found at {url}")
+                    return
                     
                 for card in job_tuples:
                     try:
                         title = (card.css('a.title::text').get() or "").strip()
                         company = (card.css('a.comp-name::text').get() or card.css('.companyName::text').get() or "").strip()
-                        # Naukri location is often "Hyderabad/Secunderabad, Mumbai"
                         loc = (card.css('.locWraper span::text').get() or "").strip()
                         link = (card.css('a.title::attr(href)').get() or "")
                         
                         if title and company:
                             job_id = Job.generate_id(company, title, loc)
                             logger.info(f"   [Naukri] Found: {title} @ {company}")
-                            scraped_jobs.append(Job(
+                            found_count += 1
+                            yield Job(
                                 id=job_id,
                                 company_name=company,
                                 job_title=title,
@@ -283,29 +260,20 @@ class DiscoveryEngine:
                                 site="Naukri",
                                 discovery_date=datetime.utcnow(),
                                 queue_status="review"
-                            ))
-                    except Exception as row_err:
-                        logger.debug(f"Naukri Row Skip: {str(row_err)}")
-                        continue
-                        
-            logger.info(f"Naukri.com discovered {len(scraped_jobs)} results.")
+                            )
+                            if found_count >= limit: break
+                    except: continue
+            logger.info(f"Naukri.com discovered {found_count} results.")
         except Exception as e:
             logger.error(f"Naukri search failure: {str(e)}")
-            # Fallback warning if completely blocked
-            if "Scrapling" in str(e):
-                logger.warning("Naukri Scraper: Engine failure. Might need profile/session update.")
-            
-        return scraped_jobs[:limit]
 
-    async def _jobspy_search(self, query: str, locations: List[str], limit: int) -> List[Job]:
-        """Worker for JobSpy search."""
+    async def _jobspy_search(self, query: str, locations: List[str], limit: int):
+        """JobSpy search. Async generator."""
         if not JOBSPY_AVAILABLE:
-            return []
+            return
             
-        # REFINEMENT: Clean location for JobSpy (it prefers city name over full address)
         js_loc = locations[0].split(',')[0].strip() if locations else "Hyderabad"
-        # Force India scope if it looks like an Indian city
-        js_loc_full = f"{js_loc}, India" if any(x in js_loc.lower() for x in ["hyderabad", "bangalore", "pune", "delhi", "mumbai", "chennai", "gurgaon"]) else js_loc
+        js_loc_full = f"{js_loc}, India" if any(x in js_loc.lower() for x in ["hyderabad", "bangalore", "pune", "delhi", "mumbai"]) else js_loc
         
         logger.info(f"   [JobSpy] Starting search: {query} in {js_loc_full}")
 
@@ -314,20 +282,19 @@ class DiscoveryEngine:
             results = await loop.run_in_executor(
                 self.executor,
                 lambda: scrape_jobs(
-                    site_name=["linkedin", "indeed", "glassdoor", "google"], # Added Google
+                    site_name=["linkedin", "indeed", "glassdoor", "google"],
                     search_term=query,
                     location=js_loc_full,
-                    results_wanted=30,
-                    hours_old=None,         # Remove restriction to see if anything is found
-                    country_indeed="india"  # Force India
+                    results_wanted=limit,
+                    hours_old=None,
+                    country_indeed="india"
                 )
             )
             
             if results is None or results.empty:
-                return []
+                return
 
-            jobs = []
-            for index, row in results.iterrows():
+            for _, row in results.iterrows():
                 try:
                     def clean(val, default=""):
                         if pd.isna(val): return default
@@ -340,152 +307,98 @@ class DiscoveryEngine:
                     desc = clean(row.get('description'), "")
                     site_source = clean(row.get('site'), "Direct").capitalize()
                     
-                    # Salary Formatting (Wave 2 - Data Quality)
-                    min_val = clean(row.get('min_amount'), None)
-                    max_val = clean(row.get('max_amount'), None)
-                    currency = clean(row.get('currency'), "")
-                    interval = clean(row.get('interval'), "")
-                    
-                    salary_str = ""
-                    if min_val and max_val:
-                        salary_str = f"{currency}{min_val} - {max_val} / {interval}"
-                    elif min_val:
-                        salary_str = f"{currency}{min_val} / {interval}"
-                    
                     job_id = Job.generate_id(company, title, loc)
-                    jobs.append(Job(
+                    yield Job(
                         id=job_id,
                         company_name=company,
                         job_title=title,
                         source_url=job_url,
                         location=loc,
                         description=desc,
-                        salary_extracted=salary_str,
                         site=site_source,
                         discovery_date=datetime.utcnow(),
                         queue_status="review"
-                    ))
-                except:
-                    continue
-            logger.info(f"JobSpy discovered {len(jobs)} results.")
-            return jobs
+                    )
+                except: continue
         except Exception as e:
-            logger.error(f"JobSpy task failed: {str(e)}")
-            traceback.print_exc()
-            return []
+            logger.error(f"JobSpy failed: {str(e)}")
 
-    async def search_jobs(self, query: str, locations: List[str], limit: int = 10):
-        # Sanitize location: Remove UI-specific suffixes like " (All)"
+    async def search_jobs(self, query: str, locations: List[str], limit: int = 50):
         sanitized_location = locations[0] if locations else "India"
         if sanitized_location.endswith(" (All)"):
             sanitized_location = sanitized_location.replace(" (All)", "").strip()
 
-        # Refine query
         refined_query = await self._refine_query(query)
         logger.info(f"Starting discovery for '{refined_query}' in '{sanitized_location}'")
 
         async def main_logic():
-            # Use an async queue for true streaming between multiple scrapers
             queue = asyncio.Queue()
-                       # WORKER: Wrap scrapers with logging for failure detection
-            async def worker(task_coro, name):
+            async def worker(gen_func, name):
                 try:
-                    result_jobs = await task_coro
-                    for j in result_jobs:
+                    async for j in gen_func:
                         if j: await queue.put(j)
-                    logger.info(f"Worker {name} finished found {len(result_jobs) if result_jobs else 0} roles.")
                 except Exception as e:
                     logger.error(f"Worker {name} failed: {str(e)}")
                 finally:
                     await queue.put(None)
 
-            scrape_tasks = [
+            tasks = [
                 asyncio.create_task(worker(self._jobspy_search(refined_query, [sanitized_location], limit), "JobSpy")),
-                asyncio.create_task(worker(self._scrapling_search(refined_query, sanitized_location, limit), "Scrapling (Indeed)")),
+                asyncio.create_task(worker(self._scrapling_search(refined_query, sanitized_location, limit), "Indeed")),
                 asyncio.create_task(worker(self._naukri_search(refined_query, sanitized_location, limit), "Naukri"))
             ]
             
-            # FIX 1: Explicit worker tracking
-            tasks = scrape_tasks
-            
             try:
-                # Stream items as they arrive in the queue
                 workers_done = 0
-                returned_ids = set() # FIX 4: Backend de-duplication
-                
-                # Check if we are searching for an Indian city
-                is_india_query = any(x in sanitized_location.lower() for x in ["hyderabad", "india", "bangalore", "pune", "mumbai", "delhi"])
+                returned_ids = set()
+                is_india_query = any(x in sanitized_location.lower() for x in ["hyderabad", "india", "bangalore", "pune", "delhi", "mumbai"])
 
                 while workers_done < len(tasks):
                     try:
-                        # Wait for any worker to put something in the queue
                         job = await asyncio.wait_for(queue.get(), timeout=20.0)
                         if job is None:
                             workers_done += 1
                         elif job is not None and hasattr(job, 'id'):
                             if job.id not in returned_ids:
-                                # FIX: SMART Geographic Filter (User suggested)
+                                # GEO-FILTER RELAXED
                                 job_loc = (job.location or "").lower()
                                 job_title = (job.job_title or "").lower()
                                 job_desc = (job.description or "").lower()
-                                
-                                # Combined text for full-context filtering
                                 context_text = f"{job_loc} {job_title} {job_desc}"
                                 
-                                is_india_eligible = True # Default to True unless US signal found
+                                is_india_eligible = True 
                                 if is_india_query:
-                                    # 1. Accept explicitly India-tagged roles
-                                    india_signals = ["india", "hyderabad", "telangana", "bangalore", "karnataka", "pune", "mumbai", "delhi", "gurgaon", "chennai"]
-                                    has_india_signal = any(x in context_text for x in india_signals)
-                                    
-                                    # 2. Identify US-only signals (California, NYC, etc.)
-                                    us_signals = ["united states", "usa", "new york", "california", "tx", "ca ", "nj ", "ma ", "illinois", "chicago"]
-                                    has_us_signal = any(x in context_text for x in us_signals)
-
-                                    # SMART LOGIC:
-                                    if has_india_signal:
-                                        is_india_eligible = True # High confidence
-                                    elif has_us_signal:
-                                        is_india_eligible = False # Reject US-specific
-                                    elif "remote" in context_text:
-                                        is_india_eligible = True # Allow neutral Remote
+                                    if job.site in ["Naukri", "Indeed (Scrapling)"]:
+                                        is_india_eligible = True
                                     else:
-                                        # If no India signal and not neutral remote, likely global/US leak
-                                        is_india_eligible = False
+                                        india_signals = ["india", "hyderabad", "telangana", "bangalore", "karnataka", "pune", "mumbai", "delhi"]
+                                        has_india_signal = any(x in context_text for x in india_signals)
+                                        if has_india_signal or "remote" in context_text:
+                                            is_india_eligible = True
+                                        else:
+                                            is_india_eligible = False
 
-                                if not is_india_eligible:
-                                    logger.info(f"   [GeoFilter] Dropping outside role: {job.job_title} @ {job.location}")
-                                    continue
-
-                                returned_ids.add(job.id)
-                                logger.info(f">>> [SOURCE: {job.site}] Pushing: {job.job_title} @ {job.company_name}")
-                                yield job
-                                if len(returned_ids) >= limit:
-                                    # FIX 2: Immediate worker cancellation on limit reached
-                                    logger.info(f"Limit ({limit}) reached. Stopping workers.")
-                                    break 
+                                if is_india_eligible:
+                                    returned_ids.add(job.id)
+                                    yield job
+                                    if len(returned_ids) >= limit: break
                     except asyncio.TimeoutError:
-                        if workers_done >= len(tasks):
-                            break
-                        continue
+                        if workers_done >= len(tasks): break
             finally:
-                # FIX 1 & 2: Ensure cancellation of all background tasks
                 for t in tasks:
-                    if not t.done():
-                        t.cancel()
-                if tasks:
-                    await asyncio.gather(*tasks, return_exceptions=True)
+                    if not t.done(): t.cancel()
+                if tasks: await asyncio.gather(*tasks, return_exceptions=True)
 
-        # FIX 3: Global discovery timeout (30s) logic for AsyncGenerator
         start_time = asyncio.get_event_loop().time()
         try:
             async for job in main_logic():
-                if asyncio.get_event_loop().time() - start_time > 30.0:
-                    logger.warning(f"Global discovery timeout for '{refined_query}'")
+                if asyncio.get_event_loop().time() - start_time > 60.0:
+                    logger.warning("Discovery timeout reached (60s).")
                     break
                 yield job
         except Exception as e:
-            logger.error(f"Discovery stream failed: {e}")
+            logger.error(f"Discovery stream failure: {e}")
+
 
     async def parse_job_description(self, url: str) -> JobProfile:
         """

@@ -8,25 +8,25 @@ const GrowthHubModal = ({ isOpen, onClose, growthData, jobTitle }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white/90 border border-white/20 rounded-[2.5rem] shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white border border-[var(--outline-variant)] rounded-[2.5rem] shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
         
         {/* Header */}
-        <div className="p-8 border-b border-slate-100 flex justify-between items-start bg-gradient-to-r from-pro-blue/5 to-transparent">
+        <div className="p-10 border-b border-[var(--outline-variant)] flex justify-between items-start bg-[var(--surface-container-low)]/50">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 rounded-lg bg-pro-blue/10 text-pro-blue">
+              <div className="p-1.5 rounded-lg bg-[var(--primary)] text-white">
                 <Zap size={18} />
               </div>
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-pro-blue">Growth Phase</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--primary)]">Growth Matrix</span>
             </div>
-            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
-              Bridge the Gap for <span className="text-pro-blue">{jobTitle}</span>
+            <h2 className="text-4xl font-black text-[var(--on-background)] tracking-tighter leading-tight">
+              Bridge the Gap: <span className="text-[var(--primary)]">{jobTitle}</span>
             </h2>
-            <p className="mt-2 text-slate-500 font-medium">AI-generated roadmap to turn your profile into a 100% match.</p>
+            <p className="mt-3 text-[var(--secondary)] font-bold uppercase tracking-widest text-[8px] opacity-40">Autonomous Skill Synthesis & Roadmap</p>
           </div>
           <button 
             onClick={onClose}
-            className="p-3 rounded-2xl hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-all"
+            className="p-4 rounded-2xl hover:bg-[var(--surface-container-high)] text-[var(--secondary)] transition-all"
           >
             <X size={24} />
           </button>
@@ -35,15 +35,14 @@ const GrowthHubModal = ({ isOpen, onClose, growthData, jobTitle }) => {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
           
-          {/* Section 1: Skill Gaps */}
           <section>
             <div className="flex items-center gap-3 mb-6">
-              <CheckCircle2 className="text-rose-500" size={24} />
-              <h3 className="text-xl font-bold text-slate-900">Identified Gaps</h3>
+              <CheckCircle2 className="text-[var(--tertiary)]" size={24} />
+              <h3 className="text-xl font-black tracking-tight">Identified Synthesis Gaps</h3>
             </div>
             <div className="flex flex-wrap gap-2">
               {(skill_gaps.length > 0 ? skill_gaps : ['No significant gaps found! Keep going.']).map((gap, i) => (
-                <div key={i} className="px-4 py-2 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-sm font-bold shadow-sm">
+                <div key={i} className="px-5 py-2.5 rounded-xl bg-[var(--surface-container-low)] text-[var(--on-background)] text-xs font-black uppercase tracking-widest border border-[var(--outline-variant)]">
                   {gap}
                 </div>
               ))}
@@ -71,20 +70,20 @@ const GrowthHubModal = ({ isOpen, onClose, growthData, jobTitle }) => {
             </div>
           </section>
 
-          {/* Section 3: Suggested Projects */}
           <section>
             <div className="flex items-center gap-3 mb-6">
-              <Rocket className="text-pro-blue" size={24} />
-              <h3 className="text-xl font-bold text-slate-900">Proof-of-Work Projects</h3>
+              <Rocket className="text-[var(--primary)]" size={24} />
+              <h3 className="text-xl font-black tracking-tight">Proof-of-Work Blueprints</h3>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
               {projects.map((proj, i) => (
-                <div key={i} className="p-6 rounded-3xl border border-pro-blue/20 bg-pro-blue/5 hover:bg-pro-blue/10 transition-all border-dashed">
-                  <h4 className="text-lg font-bold text-slate-900 mb-2">{proj.title}</h4>
-                  <p className="text-slate-600 text-sm leading-relaxed mb-4">{proj.description}</p>
+                <div key={i} className="p-8 rounded-[2rem] bg-[var(--surface-container-low)] hover:bg-[var(--surface-container-high)] transition-all relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-[var(--primary)] opacity-20 group-hover:opacity-100 transition-opacity" />
+                  <h4 className="text-lg font-black mb-2">{proj.title}</h4>
+                  <p className="text-[var(--secondary)] text-sm leading-relaxed mb-6 italic opacity-70">"{proj.description}"</p>
                   <div className="flex flex-wrap gap-2">
                     {proj.tech_stack?.map((tech, j) => (
-                      <span key={j} className="text-[10px] px-2 py-1 rounded-md bg-white border border-pro-blue/10 text-pro-blue font-bold uppercase tracking-tight">
+                      <span key={j} className="text-[9px] px-3 py-1 rounded-lg bg-white font-black uppercase tracking-widest border border-[var(--outline-variant)]">
                         {tech}
                       </span>
                     ))}
@@ -95,14 +94,13 @@ const GrowthHubModal = ({ isOpen, onClose, growthData, jobTitle }) => {
           </section>
         </div>
 
-        {/* Footer */}
-        <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
-          <p className="text-xs text-slate-400 font-medium">Analysis generated via Groq (Llama 3.3 70B) • Adaptive Intel</p>
+        <div className="p-10 border-t border-[var(--outline-variant)] bg-[var(--surface-container-low)] flex justify-between items-center">
+          <p className="text-[9px] text-[var(--secondary)] font-black uppercase tracking-[0.2em] opacity-30">Synthesized via Groq Llama 3 • Precision AI</p>
           <button 
             onClick={onClose}
-            className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm tracking-widest uppercase hover:bg-slate-800 active:scale-[0.98] transition-all"
+            className="px-12 py-4 bg-[var(--on-background)] text-white rounded-2xl font-black text-xs tracking-[0.2em] uppercase hover:scale-105 transition-all shadow-xl"
           >
-            Got it, Let's Build
+            Activate Roadmap
           </button>
         </div>
       </div>

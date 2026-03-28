@@ -8,7 +8,7 @@ import { api } from '../services/api';
 export default function DiscoveryPage() {
   const [query, setQuery] = useState('Full Stack Developer');
   const [location, setLocation] = useState('Hyderabad, Telangana, India');
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(50);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [status, setStatus] = useState('');
@@ -211,109 +211,162 @@ export default function DiscoveryPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 no-scrollbar relative">
-      {/* Search Header */}
-      <div className="pro-glass-card p-8 bg-white/40 border-slate-200/60 shadow-xl shadow-slate-200/20">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-pro-blue/10 rounded-2xl shadow-inner">
-            <Search className="w-6 h-6 text-pro-blue" />
+    <div className="min-h-screen bg-[var(--background)] text-[var(--on-background)] font-['Inter'] selection:bg-[var(--primary)] selection:text-white no-scrollbar">
+      {/* Precision Header: Glassmorphism + Backdrop Blur */}
+      <div className="sticky top-0 z-[100] w-full backdrop-blur-[20px] bg-white/70 border-b border-[var(--outline-variant)] px-8 py-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-[var(--primary)]/10 rounded-2xl">
+            <Search className="w-6 h-6 text-[var(--primary)]" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight italic">Autonomous Discovery</h1>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest opacity-60">Multi-site aggregation powered by agentic loops</p>
+            <h1 className="text-2xl font-black tracking-tight leading-none mb-1">Discovery Console</h1>
+            <p className="text-[var(--secondary)] text-[10px] font-bold uppercase tracking-[0.2em] opacity-70">The Precision Architect — v2.1</p>
           </div>
         </div>
-
-        <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-50">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-pro-blue transition-colors" />
-            <input
-              value={query}
-              onChange={handleQueryChange}
-              onFocus={() => query.length >= 3 && setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
-              placeholder="Target Role (e.g. Product Manager)"
-              className="w-full pl-11 pr-4 py-4 rounded-2xl border border-slate-200 bg-white/80 focus:ring-4 focus:ring-pro-blue/10 focus:border-pro-blue outline-none transition-all placeholder:text-slate-400 font-medium"
-            />
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ring-1 ring-slate-900/5">
-                <div className="p-2 border-b border-slate-100 bg-slate-50/50">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-3">Agent Suggestions</span>
-                </div>
-                {suggestions.map((s, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => {
-                      setQuery(s);
-                      setShowSuggestions(false);
-                    }}
-                    className="w-full text-left px-5 py-3 text-sm font-bold text-slate-700 hover:bg-pro-blue/10 hover:text-pro-blue transition-colors border-b border-slate-50 last:border-0 flex items-center gap-3"
-                  >
-                    <Sparkles className="w-3 h-3 opacity-40" />
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="relative group">
-            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-pro-blue transition-colors" />
-            <select
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full pl-11 pr-10 py-4 rounded-2xl border border-slate-200 bg-white/80 focus:ring-4 focus:ring-pro-blue/10 focus:border-pro-blue outline-none transition-all font-medium appearance-none cursor-pointer"
-            >
-              <option value="Hyderabad, Telangana, India">Hyderabad (All)</option>
-              <option value="Hitech City, Hyderabad">Hitech City</option>
-              <option value="Gachibowli, Hyderabad">Gachibowli</option>
-            </select>
-          </div>
-          <button
-            disabled={loading}
-            className="pro-btn bg-slate-900 text-white font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 uppercase tracking-tighter"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-            {loading ? 'Discovering...' : 'Launch Pipeline'}
-          </button>
-        </form>
-
+        
         {status && (
-          <div className="mt-6 flex items-center gap-2 text-sm font-black text-pro-blue bg-pro-blue/5 p-4 rounded-xl border border-pro-blue/10 animate-in slide-in-from-left-4 duration-500">
-            <div className="w-2 h-2 rounded-full bg-pro-blue animate-pulse" />
+          <div className="flex items-center gap-3 text-sm font-medium text-[var(--primary)] bg-[var(--primary)]/5 px-5 py-2.5 rounded-full border border-[var(--outline-variant)] animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse" />
             {status}
           </div>
         )}
       </div>
 
-      {/* Discovery Feed */}
-      <div className="overflow-hidden rounded-3xl">
-        <JobsFeed 
-          jobs={results} 
-          loading={loading}
-          selectedIds={selectedIds}
-          onToggleSelect={onToggleSelect}
-          onBatchApply={handleBatchApply}
-          onOptimize={handleOptimize}
-          onApply={handleApply}
-          onGrowth={handleGrowth}
+      <div className="max-w-[1600px] mx-auto p-8 space-y-12">
+        {/* Search Workspace: Asymmetrical Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-8">
+            <div className="no-line-card p-10 shadow-2xl shadow-blue-900/5 bg-white relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-[var(--primary)] opacity-20 group-hover:opacity-100 transition-opacity" />
+              
+              <h2 className="text-4xl font-black tracking-tighter mb-8 leading-tight">
+                Synthesize Your Next <br />
+                <span className="text-[var(--primary)]">Career Milestone.</span>
+              </h2>
+
+              <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10">
+                <div className="md:col-span-7 relative group">
+                  <input
+                    value={query}
+                    onChange={handleQueryChange}
+                    onFocus={() => query.length >= 3 && setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
+                    placeholder="Search roles (e.g. Lead Engineer)"
+                    className="w-full pl-6 pr-4 py-5 rounded-2xl bg-[var(--surface-container-low)] border border-transparent focus:bg-white focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/5 outline-none transition-all font-semibold text-lg"
+                  />
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-xl border border-[var(--outline-variant)] rounded-2xl shadow-2xl z-[150] overflow-hidden animate-in zoom-in-95 duration-200">
+                      <div className="p-3 border-b border-[var(--outline-variant)] bg-[var(--surface-container-low)]/50">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--secondary)] px-3">Agentic Insights</span>
+                      </div>
+                      {suggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            setQuery(s);
+                            setShowSuggestions(false);
+                          }}
+                          className="w-full text-left px-6 py-4 text-sm font-bold text-[var(--on-background)] hover:bg-[var(--primary)]/5 hover:text-[var(--primary)] transition-colors flex items-center gap-3 border-b border-[var(--outline-variant)] last:border-0"
+                        >
+                          <Sparkles className="w-4 h-4 opacity-30" />
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="md:col-span-3 relative">
+                  <select
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="w-full px-6 py-5 rounded-2xl bg-[var(--surface-container-low)] border border-transparent focus:bg-white focus:border-[var(--primary)] outline-none transition-all font-bold appearance-none cursor-pointer"
+                  >
+                    <option value="Hyderabad, India">Hyderabad</option>
+                    <option value="Bangalore, India">Bangalore</option>
+                    <option value="Remote">Remote (India)</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <button
+                    disabled={loading}
+                    className="w-full h-full rounded-2xl bg-[var(--primary)] text-white font-black uppercase tracking-tighter hover:bg-[var(--primary-container)] active:scale-95 transition-all flex items-center justify-center gap-3 shadow-xl shadow-[var(--primary)]/20"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                    Launch
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 space-y-6">
+            <div className="no-line-card p-8 bg-[var(--surface-container-low)] border-none">
+              <h3 className="text-sm font-black uppercase tracking-widest mb-4 opacity-50">Active Filters</h3>
+              <div className="flex flex-wrap gap-2">
+                {['Direct Hire', 'Full-time', 'Enterprise', 'Top Tier'].map(f => (
+                  <span key={f} className="px-4 py-2 rounded-xl bg-white text-[10px] font-bold text-[var(--on-background)] shadow-sm">
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+            
+            <div className="no-line-card p-8 bg-[var(--primary)] text-white shadow-xl shadow-[var(--primary)]/10">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-70">Pipeline Control</p>
+              <p className="text-xl font-bold leading-tight mb-4">Deep Scrape Automation active across 4 sources.</p>
+              <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden">
+                <div className="h-full bg-white transition-all duration-1000" style={{ width: loading ? '60%' : '100%' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Results Workspace */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold">Discovery Feed <span className="text-[var(--secondary)] opacity-40 ml-2">/ {results.length} results</span></h3>
+            {selectedIds.length > 0 && (
+              <button 
+                onClick={handleBatchApply}
+                className="px-6 py-2.5 rounded-xl bg-[var(--primary)] text-white text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-right-4"
+              >
+                Deploy Batch ({selectedIds.length})
+              </button>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-1 gap-6">
+            <JobsFeed 
+              jobs={results} 
+              loading={loading}
+              selectedIds={selectedIds}
+              onToggleSelect={onToggleSelect}
+              onBatchApply={handleBatchApply}
+              onOptimize={handleOptimize}
+              onApply={handleApply}
+              onGrowth={handleGrowth}
+            />
+          </div>
+        </div>
+
+        <AgentStatusCounter 
+          activeAgents={activeAgents} 
+          batchProgress={batchProgress}
+        />
+        
+        <GrowthHubModal 
+          isOpen={!!selectedPlan} 
+          onClose={() => {
+            setSelectedPlan(null);
+            setSelectedJob(null);
+          }} 
+          growthData={selectedPlan}
+          jobTitle={selectedJob?.job_title}
         />
       </div>
-
-      <AgentStatusCounter 
-        activeAgents={activeAgents} 
-        batchProgress={batchProgress}
-      />
-      
-      <GrowthHubModal 
-        isOpen={!!selectedPlan} 
-        onClose={() => {
-          setSelectedPlan(null);
-          setSelectedJob(null);
-        }} 
-        growthData={selectedPlan}
-        jobTitle={selectedJob?.job_title}
-      />
     </div>
   );
 }

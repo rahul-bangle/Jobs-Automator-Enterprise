@@ -6,12 +6,12 @@ const JobCard = ({ job, onOptimize, onApply, onGrowth }) => {
     job_title,
     company_name,
     location,
-    salary_extracted,
-    site,
-    source_url,
+    salary_extracted, 
+    source_url, 
+    site, 
+    ats_score, 
     relevance_score,
-    ats_score,
-    status
+    match_score 
   } = job;
 
   const getSourceIcon = (siteName) => {
@@ -30,25 +30,79 @@ const JobCard = ({ job, onOptimize, onApply, onGrowth }) => {
   };
 
   return (
-    <div className="pro-glass-card group p-6 h-full flex flex-col justify-between relative overflow-hidden">
+    <div className="no-line-card group p-8 h-full flex flex-col justify-between relative bg-white overflow-hidden hover:shadow-2xl hover:shadow-blue-900/10 active:scale-[0.99] transition-all">
+      {/* Active Selection Indicator */}
+      <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-[var(--primary)] rounded-r-full transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
+
       {score > 0 && (
-        <div className={`absolute -top-1 -right-1 flex items-center gap-1.5 rounded-bl-2xl border-l border-b px-4 py-2 text-[10px] font-black tracking-widest uppercase shadow-sm z-10 ${getScoreColor(score)}`}>
-          <div className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-          {score}% Match
+        <div className="absolute top-6 right-6">
+          <div className="relative w-16 h-16 flex items-center justify-center">
+            <svg className="w-full h-full -rotate-90">
+              <circle
+                cx="32"
+                cy="32"
+                r="28"
+                fill="none"
+                stroke="var(--surface-container-high)"
+                strokeWidth="4"
+              />
+              <circle
+                cx="32"
+                cy="32"
+                r="28"
+                fill="none"
+                stroke="url(#matchGradient)"
+                strokeWidth="4"
+                strokeDasharray="175.9"
+                strokeDashoffset={175.9 - (175.9 * score) / 100}
+                strokeLinecap="round"
+                className="transition-all duration-1000 ease-out"
+              />
+              <defs>
+                <linearGradient id="matchGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="var(--tertiary)" />
+                  <stop offset="100%" stopColor="var(--tertiary-container)" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-xs font-black leading-none">{score}</span>
+              <span className="text-[6px] font-black uppercase tracking-tighter opacity-40">Match</span>
+            </div>
+          </div>
         </div>
       )}
       <div>
-        {/* Header: Company & Action */}
-        <div className="flex justify-between items-start mb-4 pr-12">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-pro-blue font-bold">
-              {company_name?.charAt(0) || <Building2 size={20} />}
+        <div className="flex justify-between items-start mb-6 pr-20">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--surface-container-low)] flex items-center justify-center text-[var(--primary)] font-black text-xl shadow-inner">
+              {company_name?.charAt(0) || <Building2 size={24} />}
             </div>
-            <div className="flex-1 min-w-0 pr-2">
-              <h3 className="text-slate-900 font-bold group-hover:text-pro-blue transition-colors text-lg line-clamp-2 leading-tight mb-1" title={job_title}>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[var(--on-background)] font-black group-hover:text-[var(--primary)] transition-colors text-xl line-clamp-2 leading-tight mb-1" title={job_title}>
                 {job_title}
               </h3>
-              <p className="text-slate-500 text-sm font-medium truncate opacity-80">{company_name}</p>
+              <p className="text-[var(--secondary)] text-sm font-bold truncate opacity-60 uppercase tracking-widest">{company_name}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-8">
+          <div className="flex items-center gap-2 bg-[var(--surface-container-low)] p-2 px-4 rounded-xl w-fit">
+            <MapPin size={14} className="text-[var(--secondary)] opacity-40" />
+            <span className="text-[10px] text-[var(--on-background)] font-black uppercase tracking-widest">{location}</span>
+          </div>
+          <div className="flex items-center gap-2 bg-[var(--tertiary)]/5 p-2 px-4 rounded-xl w-fit border border-[var(--tertiary)]/10">
+            <DollarSign size={14} className="text-[var(--tertiary)]" />
+            <span className="text-[10px] text-[var(--tertiary)] font-black uppercase tracking-widest">{salary_extracted || 'Salary TBD'}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between py-4 border-t border-[var(--outline-variant)]">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 px-3 rounded-lg bg-[var(--surface-container-high)] flex items-center gap-2">
+              {getSourceIcon(site)}
+              <span className="text-[8px] text-[var(--secondary)] font-black uppercase tracking-widest">{site || 'Direct'}</span>
             </div>
           </div>
           
@@ -56,67 +110,39 @@ const JobCard = ({ job, onOptimize, onApply, onGrowth }) => {
             href={source_url} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="p-2.5 rounded-xl bg-slate-50 hover:bg-pro-blue/10 text-slate-400 hover:text-pro-blue transition-all border border-slate-200 hover:border-pro-blue/30"
-            title="Direct Site View"
+            className="flex items-center gap-2 text-[var(--primary)] font-black text-[10px] uppercase tracking-widest hover:underline"
           >
-            <ExternalLink size={18} />
+            Site Intel <ExternalLink size={12} />
           </a>
         </div>
-
-        {/* Metadata Grid */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="flex items-center gap-2 bg-slate-50 p-1.5 px-3 rounded-xl border border-slate-100 w-fit">
-            <MapPin size={14} className="text-slate-400" />
-            <span className="text-xs text-slate-600 font-medium truncate max-w-[120px]">{location}</span>
-          </div>
-          <div className="flex items-center gap-2 bg-pro-green/10 p-1.5 px-3 rounded-xl border border-pro-green/20 w-fit">
-            <DollarSign size={14} className="text-pro-green" />
-            <span className="text-xs text-pro-green font-bold truncate max-w-[120px]">{salary_extracted || 'TBD'}</span>
-          </div>
-        </div>
-
-        {/* Status & Source */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="p-1 px-2 rounded-lg bg-slate-50 border border-slate-100 flex items-center gap-2">
-              {getSourceIcon(site)}
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{site || 'Direct'}</span>
-            </div>
-          </div>
-          {ats_score && (
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-pro-blue shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
-              <span className="text-[10px] text-pro-blue font-black tracking-widest uppercase">Score: {ats_score}%</span>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Action Bar */}
-      <div className="flex gap-2.5 mt-4 pt-4 border-t border-slate-100">
+      <div className="space-y-3 pt-6 border-t border-[var(--outline-variant)]">
+        <div className="flex gap-3">
+          <button 
+            onClick={() => onOptimize?.(job.id)}
+            className="flex-1 py-4 rounded-2xl bg-[var(--surface-container-low)] text-[var(--on-background)] font-black text-[10px] uppercase tracking-widest hover:bg-[var(--surface-container-high)] transition-all flex items-center justify-center gap-2"
+          >
+            <Sparkles size={14} />
+            Analyze
+          </button>
+          <button 
+            onClick={() => onApply?.(job.id)}
+            className="flex-1 py-4 rounded-2xl bg-[var(--primary)] text-white font-black text-[10px] uppercase tracking-widest hover:bg-[var(--primary-container)] transition-all flex items-center justify-center gap-2 shadow-xl shadow-[var(--primary)]/20"
+          >
+            <Send size={14} />
+            Deploy
+          </button>
+        </div>
+        
         <button 
-          onClick={() => onOptimize?.(job.id)}
-          className="flex-1 py-3.5 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold text-xs uppercase tracking-widest hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          onClick={() => onGrowth?.(job.id)}
+          className="w-full py-3 rounded-2xl bg-[var(--tertiary)]/5 text-[var(--tertiary)] font-black text-[9px] uppercase tracking-[0.2em] hover:bg-[var(--tertiary)]/10 transition-all flex items-center justify-center gap-2"
         >
-          <Sparkles size={14} />
-          Optimize
-        </button>
-        <button 
-          onClick={() => onApply?.(job.id)}
-          className="flex-1 py-3.5 rounded-xl bg-blue-600 text-white font-bold text-xs uppercase tracking-widest hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
-        >
-          <Send size={14} />
-          Deploy
+          <Zap size={12} />
+          Unlock Growth Phase
         </button>
       </div>
-
-      <button 
-        onClick={() => onGrowth?.(job.id)}
-        className="w-full mt-3 py-3 rounded-xl border border-dashed border-pro-green/30 bg-pro-green/5 text-pro-green font-bold text-[10px] uppercase tracking-widest hover:bg-pro-green/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
-      >
-        <Zap size={12} className="group-hover:animate-pulse" />
-        Unlock Growth Phase (Gap Analysis)
-      </button>
     </div>
   );
 };
