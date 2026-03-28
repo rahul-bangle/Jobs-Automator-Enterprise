@@ -7,7 +7,7 @@ const GrowthHubModal = ({ isOpen, onClose, growthData, jobTitle }) => {
   const { learnings = [], projects = [], skill_gaps = [] } = growthData || {};
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white border border-[var(--outline-variant)] rounded-[2.5rem] shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
         
         {/* Header */}

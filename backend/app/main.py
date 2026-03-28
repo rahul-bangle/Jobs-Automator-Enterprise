@@ -10,9 +10,10 @@ if sys.platform == 'win32':
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlmodel import SQLModel
 from app.core.config import settings
 from app.api.router import api_router
-from app.core.db import init_db
+from app.core.database import engine
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -22,7 +23,8 @@ app = FastAPI(
 @app.on_event("startup")
 async def on_startup():
     try:
-        await init_db()
+        async with engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.create_all)
         logger.info("✅ Database initialised successfully")
     except Exception as e:
         logger.error(f"❌ DB init failed: {e}")

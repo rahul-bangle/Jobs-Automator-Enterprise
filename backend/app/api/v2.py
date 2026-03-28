@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.core.db import get_session
-from app.models.base import Job, Campaign, ResumeVariant
+from app.models.base import Job, Campaign, ResumeVariant, MasterResume
 from app.services.pipeline_v2 import discovery_service
 from app.services.ats_engine_v2 import ats_engine
 from app.services.tailor_engine_v2 import tailor_service
@@ -12,6 +12,7 @@ from app.services.resume_parser import resume_parser
 from app.core.orchestrator import orchestrator
 from typing import List, Dict, Any, Optional
 import logging
+from datetime import datetime
 
 logger = logging.getLogger("V2Router")
 
@@ -26,8 +27,16 @@ async def get_job_suggestions(q: str = ""):
     suggestions = await discovery_service.get_suggestions(q)
     return {"suggestions": suggestions}
 
+
+@router.get("/jobs")
+async def get_jobs(session: AsyncSession = Depends(get_session)):
+    stmt = select(Job).order_by(Job.created_at.desc())
+    jobs = (await session.execute(stmt)).scalars().all()
+    return jobs
+
 class DiscoveryRequest(BaseModel):
-    locations: List[str] = ["Hyderabad"]
+    locations: List[str] = ["India"]
+    filters: Optional[Dict[str, str]] = None
 
 @router.post("/jobs/discovery")
 async def run_discovery(
@@ -53,7 +62,7 @@ async def run_discovery(
         except Exception as e:
             logger.debug(f"Campaign fetch failed for scoring: {e}")
 
-        async for job in discovery_service.search_jobs(query, locations, limit):
+        async for job in discovery_service.search_jobs(query, locations, limit, payload.filters, session):
             # Check if job already exists in DB
             existing_job = await session.get(Job, job.id)
             is_new = existing_job is None
@@ -72,10 +81,6 @@ async def run_discovery(
                     job.relevance_score = int(score_data.get("overall_score", 0) * 100)
                 except Exception as score_err:
                     logger.debug(f"Scoring failed for {job.job_title}: {score_err}")
-
-            # Save/Update to DB
-            await session.merge(job)
-            await session.commit()
 
             # Yield to client with 'is_new' status
             job_dict = json.loads(job.json())
@@ -193,12 +198,20 @@ async def get_audit_history(
         })
     return history
 
+@router.get("/resumes/master")
+async def get_master_resume(session: AsyncSession = Depends(get_session)):
+    """Fetch the single active MasterResume for the Profiling page."""
+    resume = await session.get(MasterResume, 1)
+    if not resume:
+        return {"id": None, "status": "empty", "message": "No master resume found"}
+    return resume
+
 @router.post("/resumes/import")
 async def import_resume(
     file: UploadFile = File(...),
     session: AsyncSession = Depends(get_session)
 ):
-    """Tier 2: Universal Parser (PDF -> Structured JSON)."""
+    """Tier 2: Universal Parser (PDF -> Structured JSON -> MasterResume)."""
     logger.info(f"🚀 Import Triggered for file: {file.filename}")
     
     # 1. Read file
@@ -218,10 +231,34 @@ async def import_resume(
     # 2. Parse via LLM
     structured_json = await resume_parser.parse_text_to_json(text)
     
-    # 3. Store in DB (Assuming Resume model exists or updating Profile)
-    # For now, we'll just return the structured JSON for the frontend to confirm
+    # 3. Overwrite the single active master resume
+    existing_resume = await session.get(MasterResume, 1)
+    now = datetime.utcnow()
+
+    if existing_resume:
+        existing_resume.filename = file.filename
+        existing_resume.raw_text = text
+        existing_resume.parsed_json = structured_json
+        existing_resume.updated_at = now
+        master_resume = existing_resume
+    else:
+        master_resume = MasterResume(
+            id=1,
+            filename=file.filename,
+            raw_text=text,
+            parsed_json=structured_json,
+            created_at=now,
+            updated_at=now,
+        )
+        session.add(master_resume)
+
+    await session.commit()
+    await session.refresh(master_resume)
+
     return {
+        "id": master_resume.id,
         "filename": file.filename,
-        "message": "Parsed successfully",
-        "resume": structured_json
+        "message": "Master resume imported successfully",
+        "uploaded_at": master_resume.updated_at.isoformat(),
+        "resume": master_resume.parsed_json
     }

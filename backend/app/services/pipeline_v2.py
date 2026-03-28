@@ -20,12 +20,7 @@ except ImportError:
     JOBSPY_AVAILABLE = False
     logger.warning("jobspy/pandas not installed. Job scraping disabled.")
 
-try:
-    from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
-    CRAWL4AI_AVAILABLE = True
-except ImportError:
-    CRAWL4AI_AVAILABLE = False
-    logger.warning("crawl4ai not installed. URL parsing will use fallback.")
+
 
 try:
     from groq import Groq
@@ -43,6 +38,7 @@ except ImportError:
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import Job
 from app.core.config import settings
@@ -128,17 +124,7 @@ class DiscoveryEngine:
                 return None
         return self._groq
 
-    @property
-    def crawler(self):
-        if self._crawler is None:
-            if not CRAWL4AI_AVAILABLE:
-                return None
-            try:
-                from crawl4ai import AsyncWebCrawler
-                self._crawler = AsyncWebCrawler()
-            except:
-                pass
-        return self._crawler
+
 
     async def fetch_url(self, url: str) -> str:
         """Legacy compatibility (from processor.py): Fetches raw HTML via Requests."""
@@ -267,7 +253,48 @@ class DiscoveryEngine:
         except Exception as e:
             logger.error(f"Naukri search failure: {str(e)}")
 
-    async def _jobspy_search(self, query: str, locations: List[str], limit: int):
+    def _map_hours_old(self, date_posted: str) -> Optional[int]:
+        mapping = {
+            "24h": 24,
+            "7d": 24 * 7,
+            "30d": 24 * 30,
+        }
+        return mapping.get((date_posted or "").lower())
+
+    def _passes_filters(self, job: Job, filters: Optional[dict]) -> bool:
+        if not filters:
+            return True
+
+        remote = (filters.get("remote") or "all").lower()
+        job_type = (filters.get("job_type") or "all").lower()
+        experience = (filters.get("experience") or "all").lower()
+
+        text_blob = f"{(job.location or '').lower()} {(job.description or '').lower()} {(job.job_title or '').lower()}"
+
+        if remote == "remote" and "remote" not in text_blob:
+            return False
+        if remote == "onsite" and "remote" in text_blob:
+            return False
+
+        if job_type != "all":
+            if job_type == "full-time" and all(x not in text_blob for x in ["full time", "full-time"]):
+                return False
+            if job_type == "contract" and "contract" not in text_blob:
+                return False
+            if job_type == "internship" and all(x not in text_blob for x in ["intern", "internship"]):
+                return False
+
+        if experience != "all":
+            if experience == "fresher" and all(x not in text_blob for x in ["fresher", "entry", "junior", "0-1", "1 year"]):
+                return False
+            if experience == "mid" and all(x not in text_blob for x in ["mid", "2 year", "3 year", "4 year", "5 year"]):
+                return False
+            if experience == "senior" and all(x not in text_blob for x in ["senior", "lead", "principal", "staff", "6 year", "7 year", "8 year"]):
+                return False
+
+        return True
+
+    async def _jobspy_search(self, query: str, locations: List[str], limit: int, filters: Optional[dict] = None):
         """JobSpy search. Async generator."""
         if not JOBSPY_AVAILABLE:
             return
@@ -279,16 +306,22 @@ class DiscoveryEngine:
 
         try:
             loop = asyncio.get_event_loop()
-            results = await loop.run_in_executor(
-                self.executor,
-                lambda: scrape_jobs(
-                    site_name=["linkedin", "indeed", "glassdoor", "zip_recruiter"],
-                    search_term=query,
-                    location=js_loc_full,
-                    results_wanted=50,
-                    hours_old=None,
-                    country_indeed="india"
+            hours_old = self._map_hours_old((filters or {}).get("date_posted", "any"))
+            # Guard blocking scrape call so one provider cannot stall entire discovery stream.
+            results = await asyncio.wait_for(
+                loop.run_in_executor(
+                    self.executor,
+                    lambda: scrape_jobs(
+                        site_name=["linkedin", "indeed"],
+                        search_term=query,
+                        location=js_loc_full,
+                        results_wanted=max(10, min(limit, 30)),
+                        hours_old=hours_old,
+                        country_indeed="india"
+                    )
                 )
+                ,
+                timeout=45.0
             )
             
             if results is None or results.empty:
@@ -320,10 +353,19 @@ class DiscoveryEngine:
                         queue_status="review"
                     )
                 except: continue
+        except asyncio.TimeoutError:
+            logger.warning(f"JobSpy timed out for query='{query}' location='{js_loc_full}'.")
         except Exception as e:
             logger.error(f"JobSpy failed: {str(e)}")
 
-    async def search_jobs(self, query: str, locations: List[str], limit: int = 50):
+    async def search_jobs(
+        self,
+        query: str,
+        locations: List[str],
+        limit: int = 50,
+        filters: Optional[dict] = None,
+        session: Optional[AsyncSession] = None,
+    ):
         sanitized_location = locations[0] if locations else "India"
         if sanitized_location.endswith(" (All)"):
             sanitized_location = sanitized_location.replace(" (All)", "").strip()
@@ -344,23 +386,30 @@ class DiscoveryEngine:
                 finally:
                     await queue.put(None)
 
-            geo_locations = [sanitized_location, "India", "Bangalore", "Hyderabad", "Pune"]
+            geo_locations = [sanitized_location]
             geo_locations = list(dict.fromkeys([loc.strip() for loc in geo_locations if loc and loc.strip()]))
+            enable_deep_scrape = os.getenv("ENABLE_DEEP_SCRAPE_DISCOVERY", "0") == "1"
 
             tasks = []
             for loc in geo_locations:
-                tasks.append(asyncio.create_task(worker(self._jobspy_search(refined_query, [loc], limit), f"JobSpy:{loc}")))
-                tasks.append(asyncio.create_task(worker(self._scrapling_search(refined_query, loc, limit), f"Indeed:{loc}")))
-                tasks.append(asyncio.create_task(worker(self._naukri_search(refined_query, loc, limit), f"Naukri:{loc}")))
+                tasks.append(asyncio.create_task(worker(self._jobspy_search(refined_query, [loc], limit, filters), f"JobSpy:{loc}")))
+                if enable_deep_scrape:
+                    tasks.append(asyncio.create_task(worker(self._scrapling_search(refined_query, loc, limit), f"Indeed:{loc}")))
+                    tasks.append(asyncio.create_task(worker(self._naukri_search(refined_query, loc, limit), f"Naukri:{loc}")))
             
             try:
                 workers_done = 0
                 returned_keys = set()
                 is_india_query = any(x in sanitized_location.lower() for x in ["hyderabad", "india", "bangalore", "pune", "delhi", "mumbai"])
+                deadline = asyncio.get_event_loop().time() + float(self.timeout_seconds)
 
                 while workers_done < len(tasks):
+                    remaining = deadline - asyncio.get_event_loop().time()
+                    if remaining <= 0:
+                        logger.warning("Discovery deadline reached before all workers finished.")
+                        break
                     try:
-                        job = await asyncio.wait_for(queue.get(), timeout=20.0)
+                        job = await asyncio.wait_for(queue.get(), timeout=min(remaining, 5.0))
                         if job is None:
                             workers_done += 1
                         elif job is not None and hasattr(job, 'id'):
@@ -388,23 +437,31 @@ class DiscoveryEngine:
                                         else:
                                             is_india_eligible = False
 
-                                if is_india_eligible:
+                                if is_india_eligible and self._passes_filters(job, filters):
                                     returned_keys.add(dedupe_key)
                                     yield job
                                     if len(returned_keys) >= limit: break
                     except asyncio.TimeoutError:
-                        if workers_done >= len(tasks): break
+                        continue
             finally:
                 for t in tasks:
                     if not t.done(): t.cancel()
-                if tasks: await asyncio.gather(*tasks, return_exceptions=True)
+                if tasks:
+                    done, pending = await asyncio.wait(tasks, timeout=1.5)
+                    if pending:
+                        logger.warning(f"Discovery cleanup left {len(pending)} background worker(s) pending.")
 
         start_time = asyncio.get_event_loop().time()
         try:
             async for job in main_logic():
-                if asyncio.get_event_loop().time() - start_time > 60.0:
-                    logger.warning("Discovery timeout reached (60s).")
+                if asyncio.get_event_loop().time() - start_time > float(self.timeout_seconds):
+                    logger.warning(f"Discovery timeout reached ({self.timeout_seconds}s).")
                     break
+                if session is not None and job and job.id:
+                    existing = await session.get(Job, job.id)
+                    if not existing:
+                        session.add(job)
+                        await session.commit()
                 yield job
         except Exception as e:
             logger.error(f"Discovery stream failure: {e}")
@@ -412,38 +469,30 @@ class DiscoveryEngine:
 
     async def parse_job_description(self, url: str) -> JobProfile:
         """
-        Crawl4AI: Structured Parsing into Rigid JSON Profile (with Fallback for Windows)
+        Structured Parsing into Rigid JSON Profile using Requests/BeautifulSoup.
         """
         logger.info(f"Parsing Job Description at {url}")
         html_content = ""
         
+        import requests
+        from bs4 import BeautifulSoup
         try:
-            # Attempt with Crawl4AI (Best fidelity)
-            config = CrawlerRunConfig(
-                cache_mode=CacheMode.BYPASS,
-                word_count_threshold=10,
-                excluded_tags=['nav', 'footer', 'aside']
-            )
-            async with AsyncWebCrawler() as crawler:
-                result = await crawler.arun(url=url, config=config)
-                html_content = result.markdown
-        except Exception as e:
-            # Persistent Fallback for Windows asyncio issues (NotImplementedError)
-            logger.warning(f"Crawl4AI failed or inhibited. Using Requests/BeautifulSoup fallback. Error: {str(e)}")
-            import requests
-            from bs4 import BeautifulSoup
-            try:
-                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
-                response = requests.get(url, timeout=15, headers=headers)
-                soup = BeautifulSoup(response.text, 'html.parser')
-                for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
-                    tag.decompose()
-                html_content = soup.get_text(separator=' ', strip=True)
-            except Exception as re:
-                logger.error(f"Fallback parser failed for {url}: {str(re)}")
-                return JobProfile(role="Error Parsing", skills_required=[], tools=[], experience_level="N/A", keywords=[], soft_skills=[])
+            # Persistent Fallback for Windows asyncio issues
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+            response = requests.get(url, timeout=15, headers=headers)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+                tag.decompose()
+            html_content = soup.get_text(separator=' ', strip=True)
+        except Exception as re:
+            logger.error(f"Parser failed for {url}: {str(re)}")
+            return JobProfile(role="Error Parsing", skills_required=[], tools=[], experience_level="N/A", keywords=[], soft_skills=[])
 
         # Tier 2: Groq High-Fidelity Extraction
+        if not self.groq:
+            logger.warning("Groq not available for JD parsing. Returning raw extracted text.")
+            return JobProfile(role="Unknown", skills_required=[], tools=[], experience_level="N/A", keywords=[], soft_skills=[])
+
         # FIX 7: Truncate JD to 4000 characters to reduce tokens and latency
         truncated_content = html_content[:4000] if html_content else ""
         logger.info(f"Extracting structured profile from text (Sample: {truncated_content[:50]}...)")

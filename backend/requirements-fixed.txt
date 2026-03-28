@@ -13,7 +13,7 @@ python-multipart
 playwright
 scrapy
 python-jobspy
-crawl4ai
+
 browser-use
 # Reactive-Resume V4 Compatibility Layer
 pydantic
