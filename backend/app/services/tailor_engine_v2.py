@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.pipeline_v2 import JobProfile
 from app.services.ats_engine_v2 import ats_engine, ScoreResult
-from app.models.base import ResumeVariant, Job
+from app.models.base import ResumeVariant
 from app.core.config import settings
 from app.core.llm import llm_client as groq_client
 

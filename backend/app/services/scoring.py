@@ -1,6 +1,4 @@
-import os
 import json
-from app.core.config import settings
 from app.core.llm import llm_client as client
 from typing import Optional, Dict, Any
 from groq import Groq

@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from typing import Dict, Optional, Any, List
-import os
 from pydantic import BaseModel
 from playwright.async_api import async_playwright
 from sqlalchemy.ext.asyncio import AsyncSession

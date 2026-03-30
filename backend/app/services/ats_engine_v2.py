@@ -1,10 +1,8 @@
 from typing import List, Dict, Optional
 import json
 from groq import Groq
-import os
 from pydantic import BaseModel
 from app.services.pipeline_v2 import JobProfile
-from app.core.config import settings
 from app.core.llm import llm_client as groq_client
 
 import logging
