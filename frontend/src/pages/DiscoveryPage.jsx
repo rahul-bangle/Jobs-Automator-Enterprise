@@ -9,7 +9,6 @@ import {
   Search,
   RefreshCw,
   Sparkles,
-  Sync,
   History,
   RotateCcw
 } from 'lucide-react';
@@ -20,7 +19,7 @@ import { api } from '../services/api';
 export default function DiscoveryPage() {
   const [query, setQuery] = useState('Associate Product Manager');
   const [location, setLocation] = useState('India');
-  const [limit, setLimit] = useState(50);
+  const [limit, setLimit] = useState(200);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [status, setStatus] = useState('');
@@ -361,10 +360,13 @@ export default function DiscoveryPage() {
                           setSelectedJob(job);
                           if (!job.description) {
                             try {
-                              const { data } = await axios.post(`${API_BASE}/jobs/${job.id}/sync`);
-                              // Update the job in the local results list and selectedJob
-                              setResults(prev => prev.map(j => j.id === job.id ? { ...j, description: data.description } : j));
-                              setSelectedJob(prev => prev?.id === job.id ? { ...prev, description: data.description } : prev);
+                              const resp = await fetch(`${API_URL}/api/v2/jobs/${job.id}/sync`, { method: 'POST' });
+                              if (resp.ok) {
+                                const data = await resp.json();
+                                // Update the job in the local results list and selectedJob
+                                setResults(prev => prev.map(j => j.id === job.id ? { ...j, description: data.description } : j));
+                                setSelectedJob(prev => prev?.id === job.id ? { ...prev, description: data.description } : prev);
+                              }
                             } catch (err) {
                               console.error("Sync failed:", err);
                             }

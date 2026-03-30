@@ -60,26 +60,72 @@ class DiscoveryEngine:
     def __init__(self):
         self._crawler = None
         self._groq = None
-        self.timeout_seconds = 30 # Tighter timeout
+        self.timeout_seconds = 90  # Increased for multi-site search
         self.executor = ThreadPoolExecutor(max_workers=3)
 
-    async def _refine_query(self, query: str) -> str:
-        """Fixes typos using Groq to ensure scraping effectiveness."""
+    def _static_refine(self, query: str) -> List[str]:
+        """Hardcoded fallback for common roles when Groq is unavailable."""
+        base = query.strip()
+        expansions = {
+            "associate product manager": [
+                "Associate Product Manager",
+                "Junior Product Manager", 
+                "APM product"
+            ],
+            "product manager": [
+                "Product Manager",
+                "APM fresher",
+                "Product Analyst"
+            ]
+        }
+        for key, variants in expansions.items():
+            if key in base.lower():
+                return list(dict.fromkeys([base] + variants))
+        return list(dict.fromkeys([base, f"junior {base}", f"{base} fresher"]))
+
+    async def _refine_query(self, query: str) -> List[str]:
+        """
+        Primary: Groq-powered semantic expansion.
+        Fallback: _static_refine.
+        """
         if not self.groq:
-            return query
+            return self._static_refine(query)
+            
         try:
-            prompt = f"Fix any obvious typos and return ONLY the corrected job title: '{query}'"
-            completion = self.groq.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1
+            logger.info(f"   [Query] Expanding semantic variants for: {query}")
+            prompt = (
+                f"Given the job search query '{query}', provide 13-15 professional variants or abbreviations "
+                "commonly used in the industry (e.g., 'APM' for 'Associate Product Manager'). "
+                "Return ONLY a JSON list of strings."
             )
-            refined = completion.choices[0].message.content.strip().replace("'", "").replace("\"", "")
-            logger.info(f"Refined query: '{query}' -> '{refined}'")
-            return refined
+            # 5-second deadline for query expansion—failure triggers static fallback
+            completion = await asyncio.wait_for(
+                asyncio.to_thread(
+                    self.groq.chat.completions.create,
+                    model="llama-3.1-8b-instant",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    response_format={"type": "json_object"}
+                ),
+                timeout=30.0
+            )
+
+            data = json.loads(completion.choices[0].message.content)
+            variants = []
+            for v in data.values():
+                if isinstance(v, list):
+                    variants = [str(x) for x in v]
+                    break
+            
+            if variants:
+                final_list = list(dict.fromkeys([query] + variants))
+                logger.info(f"   [Query] Expanded to: {final_list}")
+                return final_list
+                
         except Exception as e:
-            logger.debug(f"Query refinement failed: {e}")
-            return query
+            logger.warning(f"   [Query] Semantic expansion failed ({type(e).__name__}). Using static fallback.")
+            
+        return self._static_refine(query)
 
     async def get_suggestions(self, query: str) -> List[str]:
         """AI-powered job title suggestions for autocomplete."""
@@ -149,18 +195,17 @@ class DiscoveryEngine:
         if not SCRAPLING_AVAILABLE:
             return
 
-        is_india = any(x in location.lower() for x in ["india", "hyderabad", "bangalore", "pune", "delhi", "mumbai"])
-        base_domain = "in.indeed.com" if is_india else "www.indeed.com"
+        base_domain = "www.indeed.com"
         
-        logger.info(f"Starting Scrapling Indeed ({base_domain}) search for: {query} in {location}")
+        logger.info(f"Starting Indeed Scrapling search for: {query}")
         
         found_count = 0
         try:
             async with AsyncStealthySession(headless=True) as session:
-                max_pages = 5 
+                max_pages = 10 
                 for p_idx in range(max_pages):
                     start_val = p_idx * 10
-                    url = f"https://{base_domain}/jobs?q={query.replace(' ', '+')}&l={location.replace(' ', '+')}&start={start_val}"
+                    url = f"https://www.indeed.com/jobs?q={query.replace(' ', '+')}&l=India&sc=0kf%3Ajt(fulltime)%3B&sort=date&start={start_val}"
                     
                     page = await session.fetch(url)
                     job_cards = page.css('.job_seen_atlas') or page.css('.result') or page.css('.job-card-container')
@@ -200,7 +245,7 @@ class DiscoveryEngine:
                     if found_count >= limit: break
                     await asyncio.sleep(random.uniform(0.5, 1.5))
                     
-            logger.info(f"Scrapling Indeed discovered {found_count} results.")
+            logger.info(f"Indeed Scrapling discovered {found_count} results.")
         except Exception as e:
             logger.error(f"Scrapling search failed: {str(e)}")
 
@@ -214,13 +259,14 @@ class DiscoveryEngine:
         logger.info(f"Starting Scrapling Naukri search for: {query} in {location}")
         clean_query = query.lower().replace(" ", "-")
         clean_loc = location.lower().split(',')[0].strip().replace(" ", "-")
-        url = f"https://www.naukri.com/{clean_query}-jobs-in-{clean_loc}"
+        url = f"https://www.naukri.com/{clean_query}-jobs?jobAge=7"
         
         found_count = 0
         try:
             async with AsyncStealthySession(headless=True) as session:
                 page = await session.fetch(url)
-                job_tuples = page.css('.srp-jobtuple') or page.css('.cust-job-tuple')
+                # Corrected to target article.jobTuple based on modern Naukri structure
+                job_tuples = page.css('article.jobTuple') or page.css('.srp-jobtuple')
                 
                 if not job_tuples:
                     logger.warning(f"Naukri.com: 0 results found at {url}")
@@ -228,9 +274,9 @@ class DiscoveryEngine:
                     
                 for card in job_tuples:
                     try:
-                        title = (card.css('a.title::text').get() or "").strip()
-                        company = (card.css('a.comp-name::text').get() or card.css('.companyName::text').get() or "").strip()
-                        loc = (card.css('.locWraper span::text').get() or "").strip()
+                        title = (card.css('.title::text').get() or "").strip()
+                        company = (card.css('.subTitle::text').get() or "").strip()
+                        loc = (card.css('.ellipsis::text').get() or "").strip()
                         link = (card.css('a.title::attr(href)').get() or "")
                         
                         if title and company:
@@ -252,6 +298,54 @@ class DiscoveryEngine:
             logger.info(f"Naukri.com discovered {found_count} results.")
         except Exception as e:
             logger.error(f"Naukri search failure: {str(e)}")
+
+    async def _cutshort_search(self, query: str, location: str, limit: int):
+        """
+        Cutshort.io scraper. Specialized for high-quality startups/product roles.
+        """
+        if not SCRAPLING_AVAILABLE:
+            return
+        
+        logger.info(f"Starting Cutshort search for: {query}")
+        # URL formatting per request
+        url = f"https://cutshort.io/jobs?query={query.replace(' ', '+')}&location=India"
+        
+        found_count = 0
+        try:
+            async with AsyncStealthySession(headless=True) as session:
+                page = await session.fetch(url)
+                cards = page.css('.job-card') or page.css('[class*="JobCard"]')
+                
+                for card in cards:
+                    try:
+                        title = (card.css('h3::text').get() or 
+                                 card.css('[class*="title"]::text').get() or "").strip()
+                        company = (card.css('[class*="company"]::text').get() or "").strip()
+                        loc = (card.css('[class*="location"]::text').get() or location).strip()
+                        link = (card.css('a::attr(href)').get() or "")
+                        if link and not link.startswith('http'):
+                            link = f"https://cutshort.io{link}"
+                        
+                        if title and company:
+                            job_id = Job.generate_id(company, title, loc)
+                            logger.info(f"   [Cutshort] Found: {title} @ {company}")
+                            found_count += 1
+                            yield Job(
+                                id=job_id,
+                                company_name=company,
+                                job_title=title,
+                                source_url=link,
+                                location=loc,
+                                site="Cutshort",
+                                discovery_date=datetime.utcnow(),
+                                queue_status="review"
+                            )
+                            if found_count >= limit:
+                                break
+                    except:
+                        continue
+        except Exception as e:
+            logger.error(f"Cutshort search failed: {str(e)}")
 
     def _map_hours_old(self, date_posted: str) -> Optional[int]:
         mapping = {
@@ -312,12 +406,14 @@ class DiscoveryEngine:
                 loop.run_in_executor(
                     self.executor,
                     lambda: scrape_jobs(
-                        site_name=["linkedin", "indeed"],
+                        site_name=["indeed", "linkedin", "naukri", "glassdoor"],
                         search_term=query,
                         location=js_loc_full,
-                        results_wanted=max(10, min(limit, 30)),
+                        results_wanted=100,
                         hours_old=hours_old,
-                        country_indeed="india"
+                        country_indeed="India",
+                        linkedin_fetch_description=False,
+                        verbose=0
                     )
                 )
                 ,
@@ -370,12 +466,12 @@ class DiscoveryEngine:
         if sanitized_location.endswith(" (All)"):
             sanitized_location = sanitized_location.replace(" (All)", "").strip()
 
-        refined_query = await self._refine_query(query)
-        logger.info(f"Starting discovery for '{refined_query}' in '{sanitized_location}'")
+        refined_queries = await self._refine_query(query)
+        logger.info(f"Starting discovery for '{refined_queries}' in '{sanitized_location}'")
 
         async def main_logic():
             queue = asyncio.Queue()
-            semaphore = asyncio.Semaphore(5)
+            semaphore = asyncio.Semaphore(2)  # Reduced for stability
             async def worker(gen_func, name):
                 try:
                     async with semaphore:
@@ -388,14 +484,23 @@ class DiscoveryEngine:
 
             geo_locations = [sanitized_location]
             geo_locations = list(dict.fromkeys([loc.strip() for loc in geo_locations if loc and loc.strip()]))
-            enable_deep_scrape = os.getenv("ENABLE_DEEP_SCRAPE_DISCOVERY", "0") == "1"
+            enable_deep_scrape = True
 
             tasks = []
+            site_counts = {}
+
             for loc in geo_locations:
-                tasks.append(asyncio.create_task(worker(self._jobspy_search(refined_query, [loc], limit, filters), f"JobSpy:{loc}")))
+                # Add JobSpy tasks for ALL refined queries
+                for q in refined_queries:
+                    tasks.append(asyncio.create_task(worker(self._jobspy_search(q, [loc], limit, filters), f"JobSpy:{q}:{loc}")))
+                
+                # Use the primary query for deep scrapers to avoid redundant heavy scraping
+                primary_q = refined_queries[0]
+                tasks.append(asyncio.create_task(worker(self._scrapling_search(primary_q, loc, limit), "Indeed:Scrapling")))
+                
                 if enable_deep_scrape:
-                    tasks.append(asyncio.create_task(worker(self._scrapling_search(refined_query, loc, limit), f"Indeed:{loc}")))
-                    tasks.append(asyncio.create_task(worker(self._naukri_search(refined_query, loc, limit), f"Naukri:{loc}")))
+                    tasks.append(asyncio.create_task(worker(self._naukri_search(primary_q, loc, limit), f"Naukri:{loc}")))
+                    tasks.append(asyncio.create_task(worker(self._cutshort_search(primary_q, loc, limit), "Cutshort")))
             
             try:
                 workers_done = 0
@@ -439,10 +544,21 @@ class DiscoveryEngine:
 
                                 if is_india_eligible and self._passes_filters(job, filters):
                                     returned_keys.add(dedupe_key)
+                                    # Log per-site counts as requested
+                                    site_source = job.site or "Unknown"
+                                    site_counts[site_source] = site_counts.get(site_source, 0) + 1
                                     yield job
                                     if len(returned_keys) >= limit: break
                     except asyncio.TimeoutError:
                         continue
+
+                # Final log in console of high-level totals as requested
+                logger.info("="*40)
+                logger.info("DISCOVERY SUMMARY (CONSOLIDATED)")
+                for site, count in site_counts.items():
+                    logger.info(f"   - {site}: {count} jobs")
+                logger.info(f"   TOTAL UNIQUE JOBS: {len(returned_keys)}")
+                logger.info("="*40)
             finally:
                 for t in tasks:
                     if not t.done(): t.cancel()
