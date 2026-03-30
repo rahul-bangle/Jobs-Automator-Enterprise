@@ -133,10 +133,30 @@
 | 248 | Agent | 🧹 **Database Purge**. Executed `DELETE FROM public.jobs;` on Supabase. Confirmed 0 rows remaining. |
 | 249 | User | (Naukri/Foundit Scrapling & API Tests) |
 | 249 | Agent | 🧪 **Experimental Phase**. Tested Scrapling on Naukri/Foundit and the direct v3 API with a Bearer token. All yielded either blank shells or 406 Recaptcha blocks. |
-| 250 | User | revoek everything...will focus on those three.... |
-| 250 | Agent | 🛡️ **Stable Core Refocus**. Cleaned up all experimental `tmp/` test scripts. Confirmed `pipeline_v2.py` is locked to **Indeed, LinkedIn, and Google Jobs**. Back to full discovery efficiency. |
-| 251 | User | clear superbase with jobs data.... |
-| 251 | Agent | 🧹 **Final Cleanup**. Executed `DELETE FROM public.jobs;` on Supabase to ensure a pristine state before resuming the core discovery pipeline. |
+| 247 | User | clear teh jobs once again insuperbase reastart teh server...... |
+| 247 | Agent | 🔄 **SYSTEM RESET**. Cleared the Supabase `public.jobs` table once more (Count: 0). Terminated active server PIDs and executed `start_all.bat` to launch fresh Backend (:8001) and Frontend (:5173) instances. |
+| 248 | User | clear rss nuakri as wr are not using ....wand wait |
+| 248 | Agent | 🧹 **Cleanup**. Removed Naukri RSS worker reference from `search_jobs` in `pipeline_v2.py`. Re-verified syntax. System in "Wait" state. |
+| 249 | User | clear jobs in superbase |
+| 249 | Agent | 🧹 **Database Purge**. Executed `DELETE FROM public.jobs;` on Supabase project `efkgwdvccgiarpibisyv`. Confirmed 0 rows remaining. |
+| 250 | User | once jjust test it indivuidual...[from scrapling.fetchers import Fetcher\npage = Fetcher.get('https://www.naukri.com/associate-product-manager-jobs', stealthy_headers=True, impersonate='chrome')\nprint(len(page.css('article.jobTuple')))\nprint(len(page.css('.srp-jobtuple-wrapper')))] |
+| 250 | Agent | 🧪 **Scrapling Test: Naukri**. Executed isolated test. Result: Status 200, but detected "empty shell" (0 jobs found). Confirmed Naukri's client-side rendering/Akamai block persists. |
+| 251 | User | ok check that once as you said run test..... |
+| 251 | Agent | 🔍 **Analysis**. Re-ran tests with broader selectors. Confirmed the page serves a generic listing shell but hides data from static scrapers. |
+| 252 | User | do a hevry readearch and find all teh internet , oogle , git with high start repos see what they did and what we did ok cna dcewreta a destill report of your finind.... |
+| 252 | Agent | 📚 **Deep Research Phase**. Investigated 5+ GitHub repos and community forums. Produced a **Distilled Research Report** Identifying the `jobapi/v3/search` JSON endpoint with Bearer token authentication as the only viable path. |
+| 253 | User | invoke try tis test and then once conif wil appy tis [In backend/app/services/pipeline_v2.py, REPLACE entire _naukri_search()...] |
+| 253 | Agent | 🛠️ **API Integration Test**. Implemented the targeted `_naukri_search` v3 function in `pipeline_v2.py`. Created test script `backend/tmp/test_naukri_api_v3.py`. |
+| 254 | User | token:-[JWT token] run fast befpr it expires |
+| 254 | Agent | ⚡ **API Execution**. Attempted v3 API call with the provided JWT. Result: `406 Not Acceptable (Recaptcha Challenge)`. Confirmed even with a real token, Naukri requires valid fingerprinted headers or browser context. |
+| 255 | User | revoke and test this now:-[foundit snippet] |
+| 255 | Agent | 🧪 **Foundit Test**. Ran Scrapling on Foundit.in. Result: Status 200, 0 job cards. Confirmed Foundit also serves a protected shell. |
+| 256 | User | revoek everything...will focus on those three.... |
+| 256 | Agent | 🛡️ **Stable Core Refocus**. Cleaned up all experimental `tmp/` test scripts. Confirmed `pipeline_v2.py` is locked to **Indeed, LinkedIn, and Google Jobs**. Back to full discovery efficiency. |
+| 257 | User | clear superbase with jobs data.... |
+| 257 | Agent | 🧹 **Final Cleanup**. Executed `DELETE FROM public.jobs;` on Supabase to ensure a pristine state before resuming the core discovery pipeline. |
+| 258 | User | ppush to git ..... |
+| 258 | Agent | 🚀 **Git Ops**. Staged modified services, `.planning/` metadata, and `MASTER_CONTEXT.md`. Committed and pushed to `origin/main` ([5d0c293](https://github.com/rahul-bangle/Jobs-Automator-Enterprise/commit/5d0c293)). |
 
 > [!IMPORTANT]
 > **STRICT RULE**: Agent is in "Analytic Mode". NO EXECUTIONS. NO TESTING. The User performs all testing. For every query/doubt, the Agent must first find relevant files and then explain/answer via code analysis only.
